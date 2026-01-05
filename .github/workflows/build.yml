@@ -14,7 +14,7 @@ permissions:
   contents: write
 
 env:
-  SUBDIRS: chat chatapp/src-tauri
+  SUBDIRS: new-chat chatapp/src-tauri
 
 jobs:
   build-rust:
