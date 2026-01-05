@@ -4,8 +4,34 @@ pub mod utils;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::fmt;
+use thiserror::Error;
 pub use utils::*;
 use utoipa::ToSchema;
+
+pub trait Agent: fmt::Debug {
+    async fn process(&self, msg: Message, ctx: &AgentContext) -> Result<AgentDecision, AgentError>;
+}
+
+#[derive(Debug, Clone)]
+pub struct AgentContext {
+    pub user_id: i64,
+    pub chat_id: i64,
+}
+
+#[derive(Debug, Clone)]
+pub enum AgentDecision {
+    Modify(String),
+    Reply(String),
+    Delete,
+    None,
+}
+
+#[derive(Debug, Error)]
+pub enum AgentError {
+    #[error("Network error: {0}")]
+    NetWorkError(String),
+}
 
 #[derive(Debug, Clone, FromRow, ToSchema, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -48,6 +74,7 @@ pub struct Chat {
     pub name: Option<String>,
     pub r#type: ChatType,
     pub members: Vec<i64>,
+    pub agent_id: Vec<i64>,
     #[serde(alias = "createdAt")]
     pub created_at: DateTime<Utc>,
 }
@@ -75,6 +102,7 @@ pub struct Message {
     #[serde(alias = "senderId")]
     pub sender_id: i64,
     pub content: String,
+    pub modified_content: Option<String>,
     pub files: Vec<String>,
     #[serde(alias = "createdAt")]
     pub created_at: DateTime<Utc>,
