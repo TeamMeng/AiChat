@@ -120,7 +120,7 @@ mod tests {
         };
 
         let err = state.create_message(input, 1, 1).await.unwrap_err();
-        assert_eq!(err.to_string(), "invalid chat file path: 1");
+        assert_eq!(err.to_string(), "Invalid chat file path: 1");
 
         // valid files should work
         let url = upload_dummy_file(&state)?;

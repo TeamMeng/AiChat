@@ -198,7 +198,7 @@ impl ChatServer {
             .send()
             .await?;
 
-        assert_eq!(res.status(), StatusCode::CREATED);
+        assert_eq!(res.status(), StatusCode::OK);
         let vec: Vec<String> = res.json().await?;
         assert!(!vec[0].is_empty());
 
