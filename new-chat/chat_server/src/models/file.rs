@@ -10,7 +10,7 @@ impl ChatFile {
         let hash = Sha1::digest(data);
         Self {
             ws_id,
-            ext: filename.split('.').next_back().unwrap_or("txt").to_string(),
+            ext: filename.split('.').last().unwrap_or("txt").to_string(),
             hash: hex::encode(hash),
         }
     }
@@ -19,10 +19,11 @@ impl ChatFile {
         format!("/files/{}", self.hash_to_path())
     }
 
-    pub fn path(&self, base_url: &Path) -> PathBuf {
-        base_url.join(self.hash_to_path())
+    pub fn path(&self, base_dir: &Path) -> PathBuf {
+        base_dir.join(self.hash_to_path())
     }
 
+    // split hash into 3 parts, first 2 with 3 chars
     fn hash_to_path(&self) -> String {
         let (part1, part2) = self.hash.split_at(3);
         let (part2, part3) = part2.split_at(3);
@@ -33,10 +34,11 @@ impl ChatFile {
 impl FromStr for ChatFile {
     type Err = AppError;
 
+    // convert /files/s/339/807/e635afbeab088ce33206fdf4223a6bb156.png to ChatFile
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let Some(s) = s.strip_prefix("/files/") else {
             return Err(AppError::ChatFileError(format!(
-                "invalid chat file path: {}",
+                "Invalid chat file path: {}",
                 s
             )));
         };
@@ -44,26 +46,26 @@ impl FromStr for ChatFile {
         let parts: Vec<&str> = s.split('/').collect();
         if parts.len() != 4 {
             return Err(AppError::ChatFileError(format!(
-                "file path: {} doesn't valid",
+                "File path {} does not valid",
                 s
             )));
         }
 
         let Ok(ws_id) = parts[0].parse::<u64>() else {
-            return Err(AppError::ChatFileError(
-                format!("invalid workspace id: {}", parts[0]).to_string(),
-            ));
+            return Err(AppError::ChatFileError(format!(
+                "Invalid workspace id: {}",
+                parts[1]
+            )));
         };
 
         let Some((part3, ext)) = parts[3].split_once('.') else {
             return Err(AppError::ChatFileError(format!(
-                "invalid file name: {}",
+                "Invalid file name: {}",
                 parts[3]
             )));
         };
 
         let hash = format!("{}{}{}", parts[1], parts[2], part3);
-
         Ok(Self {
             ws_id,
             ext: ext.to_string(),
@@ -75,15 +77,12 @@ impl FromStr for ChatFile {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::Result;
 
     #[test]
-    fn chat_file_new_should_work() -> Result<()> {
-        let file = ChatFile::new(1, "test.txt", b"hello");
+    fn chat_file_new_should_work() {
+        let file = ChatFile::new(1, "test.txt", b"hello world");
         assert_eq!(file.ws_id, 1);
         assert_eq!(file.ext, "txt");
-        assert_eq!(file.hash, "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d");
-
-        Ok(())
+        assert_eq!(file.hash, "2aae6c35c94fcfb415dbe95f408b9ce91ee846ed");
     }
 }

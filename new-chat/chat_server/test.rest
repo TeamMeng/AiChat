@@ -92,6 +92,10 @@ Hello, World!
 GET http://localhost:6688/api/files/1/0a0/a9f/2a6772942557ab5355d76af442f8f65e01.txt
 Authorization: Bearer {{token}}
 
+### get jpg
+GET http://localhost:6688/api/files/1/d79/340/e614f33a0d250d2e6bc2b620f618ae9cb5.jpg
+Authorization: Bearer {{token}}
+
 ### send a message
 POST http://localhost:6688/api/chats/1
 Content-Type: application/json

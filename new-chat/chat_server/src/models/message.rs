@@ -30,33 +30,33 @@ impl AppState {
         // verify content - not empty
         if input.content.is_empty() {
             return Err(AppError::CreateMessageError(
-                "content can't be empty".to_string(),
+                "Content cannot be empty".to_string(),
             ));
         }
 
-        // verify files exists
+        // verify files exist
         for s in &input.files {
             let file = ChatFile::from_str(s)?;
             if !file.path(base_dir).exists() {
                 return Err(AppError::CreateMessageError(format!(
-                    "file {} doesn't exist",
+                    "File {} doesn't exist",
                     s
                 )));
             }
         }
 
         // create message
-        let message = sqlx::query_as(
-            "
-            INSERT INTO messages (chat_id, sender_id, content, files)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, chat_id, sender_id, content, modified_content, files, created_at
-            ",
+        let message: Message = sqlx::query_as(
+            r#"
+          INSERT INTO messages (chat_id, sender_id, content, files)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id, chat_id, sender_id, content, modified_content, files, created_at
+          "#,
         )
         .bind(chat_id as i64)
         .bind(user_id as i64)
         .bind(input.content)
-        .bind(input.files)
+        .bind(&input.files)
         .fetch_one(&self.pool)
         .await?;
 
@@ -107,17 +107,20 @@ mod tests {
             content: "hello".to_string(),
             files: vec![],
         };
-        let message = state.create_message(input, 1, 1).await?;
-
+        let message = state
+            .create_message(input, 1, 1)
+            .await
+            .expect("create message failed");
         assert_eq!(message.content, "hello");
 
-        // invalid url should fail
+        // invalid files should fail
         let input = CreateMessage {
             content: "hello".to_string(),
             files: vec!["1".to_string()],
         };
-        let ret = state.create_message(input, 1, 1).await.unwrap_err();
-        assert_eq!(ret.to_string(), "invalid chat file path: 1".to_string());
+
+        let err = state.create_message(input, 1, 1).await.unwrap_err();
+        assert_eq!(err.to_string(), "invalid chat file path: 1");
 
         // valid files should work
         let url = upload_dummy_file(&state)?;
@@ -126,7 +129,10 @@ mod tests {
             files: vec![url],
         };
 
-        let message = state.create_message(input, 1, 1).await?;
+        let message = state
+            .create_message(input, 1, 1)
+            .await
+            .expect("create message failed");
         assert_eq!(message.content, "hello");
         assert_eq!(message.files.len(), 1);
 
@@ -158,10 +164,11 @@ mod tests {
     }
 
     fn upload_dummy_file(state: &AppState) -> Result<String> {
-        let file = ChatFile::new(1, "test.txt", b"Hello World");
+        let file = ChatFile::new(1, "test.txt", b"hello world");
         let path = file.path(&state.config.server.base_dir);
         std::fs::create_dir_all(path.parent().expect("file path parent should exists"))?;
-        std::fs::write(&path, b"Hello World")?;
+        std::fs::write(&path, b"hello world")?;
+
         Ok(file.url())
     }
 }
