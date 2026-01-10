@@ -11,7 +11,7 @@ use serde::Deserialize;
 use std::{net::SocketAddr, time::Duration};
 use tokio::{net::TcpListener, time::sleep};
 
-const WILD_ADDR: &str = "0.0.0.0:0";
+const WILD_ADDR: &str = "127.0.0.1:0";
 
 #[derive(Debug, Deserialize)]
 struct AuthToken {

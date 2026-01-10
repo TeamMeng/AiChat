@@ -1,0 +1,13 @@
+[package]
+name = "ai_sdk"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+anyhow = { workspace = true }
+reqwest = { version = "0.13.1", features = ["json"] }
+serde = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
