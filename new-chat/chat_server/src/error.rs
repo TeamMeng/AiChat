@@ -16,6 +16,15 @@ pub enum AppError {
     #[error("create chat error: {0}")]
     CreateChatError(String),
 
+    #[error("create agent error: {0}")]
+    CreateAgentError(String),
+
+    #[error("user {user_id} is not member of chat {chat_id}")]
+    NotChatMemberError { user_id: u64, chat_id: u64 },
+
+    #[error("update agent error: {0}")]
+    UpdateAgentError(String),
+
     #[error("create message error: {0}")]
     CreateMessageError(String),
 
@@ -48,9 +57,12 @@ impl IntoResponse for AppError {
     fn into_response(self) -> axum::response::Response {
         let status = match &self {
             Self::EmailAleardyExists(_) => StatusCode::CONFLICT,
-            Self::CreateChatError(_) | Self::CreateMessageError(_) | Self::ChatFileError(_) => {
-                StatusCode::BAD_REQUEST
-            }
+            Self::CreateChatError(_)
+            | Self::CreateMessageError(_)
+            | Self::ChatFileError(_)
+            | Self::CreateAgentError(_)
+            | Self::UpdateAgentError(_) => StatusCode::BAD_REQUEST,
+            Self::NotChatMemberError { .. } => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::IoError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::SqlxError(_) => StatusCode::INTERNAL_SERVER_ERROR,

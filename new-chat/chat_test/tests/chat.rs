@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chat_core::{Chat, ChatType, Message};
+use chat_core::{Chat, ChatAgent, ChatType, Message};
 use chat_server::{AppState, get_router};
 use futures::StreamExt;
 use reqwest::{
@@ -35,6 +35,7 @@ async fn chat_server_should_work() -> Result<()> {
     let chat = chat_server.create_chat().await?;
     chat_server.create_message(chat.id as _).await?;
     chat_server.upload().await?;
+    chat_server.create_agent(chat.id as u64).await?;
     sleep(Duration::from_secs(1)).await;
     Ok(())
 }
@@ -203,5 +204,28 @@ impl ChatServer {
         assert!(!vec[0].is_empty());
 
         Ok(())
+    }
+
+    async fn create_agent(&self, chat_id: u64) -> Result<ChatAgent> {
+        let res = self
+            .client
+            .post(format!("http://{}/api/chats/{}/agents", self.addr, chat_id))
+            .header("Content-Type", "application/json")
+            .header("Authorization", format!("Bearer {}", self.token))
+            .body(
+                r#"
+                {
+                    "name": "test agent",
+                    "type": "proxy",
+                    "prompt": ""
+                }
+                "#,
+            )
+            .send()
+            .await?;
+
+        assert_eq!(res.status(), StatusCode::OK);
+        let agent: ChatAgent = res.json().await?;
+        Ok(agent)
     }
 }

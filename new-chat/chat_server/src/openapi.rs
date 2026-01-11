@@ -2,10 +2,12 @@ use crate::{
     AppState, AuthOutput,
     error::ErrorOutput,
     handlers::*,
-    models::{ChatFile, CreateChat, CreateMessage, ListMessages, SigninUser},
+    models::{
+        ChatFile, CreateAgent, CreateChat, CreateMessage, ListMessages, SigninUser, UpdateAgent,
+    },
 };
 use axum::Router;
-use chat_core::{Chat, ChatType, ChatUser, Message, User, Workspace};
+use chat_core::{AgentType, Chat, ChatAgent, ChatType, ChatUser, Message, User, Workspace};
 use utoipa::{
     Modify, OpenApi,
     openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
@@ -28,10 +30,13 @@ pub(crate) trait OpenApiRouter {
         get_chat_handler,
         send_message_handler,
         list_chat_users_handler,
-        list_message_handler
+        list_message_handler,
+        create_agent_handler,
+        update_agent_handler,
+        list_agent_handler
     ),
     components(schemas(AuthOutput, Chat, ChatType, ChatUser, ChatFile, CreateChat, ChatUser, Message,
-         CreateMessage, ListMessages, SigninUser, User, Workspace, ErrorOutput)),
+         CreateMessage, ListMessages, SigninUser, User, Workspace, ErrorOutput, CreateAgent, UpdateAgent, ChatAgent, AgentType)),
     modifiers(&SecurityAddon),
     tags(
         (name = "Chat", description = "Chat related operations")
@@ -59,5 +64,3 @@ impl OpenApiRouter for Router<AppState> {
             .merge(RapiDoc::new("/api-docs/openapi.json").path("/rapidoc"))
     }
 }
-
-// eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NjczMjEyNzQsImV4cCI6MTc2NzkyNjA3NCwibmJmIjoxNzY3MzIxMjc0LCJpc3MiOiJjaGF0X3NlcnZlciIsImF1ZCI6ImNoYXRfd2ViIiwiaWQiOjEsIndzX2lkIjoxLCJmdWxsbmFtZSI6IlRlYW1NZW5nIiwiZW1haWwiOiJUZWFtTWVuZ0AxMjMuY29tIiwiY3JlYXRlZF9hdCI6IjIwMjUtMTItMzFUMDM6NDc6MzMuMTEyNzQxWiJ9.DO2CcQ7g_jvi2S6B8h9ceSx84s_5dMHaTjcoUO5au5my2LcqYGJkw-sKfu0RQqtare0HXN0ftdxDUymVXJqaDA

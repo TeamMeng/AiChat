@@ -1,13 +1,16 @@
+mod agent;
 mod chat;
 mod file;
 mod message;
 mod user;
 mod workspace;
 
+pub use agent::{CreateAgent, UpdateAgent};
 pub use chat::CreateChat;
 pub use message::{CreateMessage, ListMessages};
-use serde::{Deserialize, Serialize};
 pub use user::{CreateUser, SigninUser};
+
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
