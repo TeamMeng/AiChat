@@ -1,4 +1,5 @@
 use axum::{Json, http::StatusCode, response::IntoResponse};
+use chat_core::AgentError;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use utoipa::ToSchema;
@@ -10,6 +11,9 @@ pub struct ErrorOutput {
 
 #[derive(Debug, Error)]
 pub enum AppError {
+    #[error("general error: {0}")]
+    AnyError(#[from] anyhow::Error),
+
     #[error("email already exists: {0}")]
     EmailAleardyExists(String),
 
@@ -43,8 +47,11 @@ pub enum AppError {
     #[error("Argon2 password hash error: {0}")]
     Argon2Error(#[from] argon2::password_hash::Error),
 
-    #[error("jwt error: {0}")]
-    JwtError(#[from] jwt_simple::Error),
+    #[error("http header parse error: {0}")]
+    HttpHeaderError(#[from] axum::http::header::InvalidHeaderValue),
+
+    #[error("ai agent error: {0}")]
+    AiAgentError(#[from] AgentError),
 }
 
 impl ErrorOutput {
@@ -67,7 +74,9 @@ impl IntoResponse for AppError {
             Self::IoError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::SqlxError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::Argon2Error(_) => StatusCode::UNPROCESSABLE_ENTITY,
-            Self::JwtError(_) => StatusCode::FORBIDDEN,
+            Self::AnyError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::HttpHeaderError(_) => StatusCode::UNPROCESSABLE_ENTITY,
+            Self::AiAgentError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         (status, Json(ErrorOutput::new(self.to_string()))).into_response()

@@ -1,5 +1,6 @@
+mod utils;
+
 pub mod middlewares;
-pub mod utils;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -10,14 +11,11 @@ use utoipa::ToSchema;
 
 #[allow(async_fn_in_trait)]
 pub trait Agent {
-    async fn process(&self, msg: Message, ctx: &AgentContext) -> Result<AgentDecision, AgentError>;
+    async fn process(&self, msg: &str, ctx: &AgentContext) -> Result<AgentDecision, AgentError>;
 }
 
-#[derive(Debug, Clone)]
-pub struct AgentContext {
-    pub user_id: i64,
-    pub chat_id: i64,
-}
+#[derive(Debug, Default, Clone)]
+pub struct AgentContext {}
 
 #[derive(Debug, Clone)]
 pub enum AgentDecision {
@@ -27,10 +25,13 @@ pub enum AgentDecision {
     None,
 }
 
-#[derive(Debug, Error)]
+#[derive(Error, Debug)]
 pub enum AgentError {
     #[error("Network error: {0}")]
-    NetWorkError(String),
+    Network(String),
+
+    #[error("{0}")]
+    AnyError(#[from] anyhow::Error),
 }
 
 #[derive(Debug, Clone, FromRow, ToSchema, Serialize, Deserialize, PartialEq)]
@@ -50,14 +51,6 @@ pub struct User {
 
 #[derive(Debug, Clone, FromRow, ToSchema, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ChatUser {
-    pub id: i64,
-    pub fullname: String,
-    pub email: String,
-}
-
-#[derive(Debug, FromRow, ToSchema, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Workspace {
     pub id: i64,
     pub name: String,
@@ -65,7 +58,32 @@ pub struct Workspace {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, FromRow, ToSchema, Serialize, Deserialize)]
+#[derive(Debug, Clone, FromRow, ToSchema, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatUser {
+    pub id: i64,
+    pub fullname: String,
+    pub email: String,
+}
+
+#[derive(
+    Debug, Clone, Default, ToSchema, Serialize, Deserialize, PartialEq, PartialOrd, sqlx::Type,
+)]
+#[sqlx(type_name = "chat_type", rename_all = "snake_case")]
+#[serde(rename_all(serialize = "camelCase"))]
+pub enum ChatType {
+    #[serde(alias = "single", alias = "Single")]
+    #[default]
+    Single,
+    #[serde(alias = "group", alias = "Group")]
+    Group,
+    #[serde(alias = "private_channel", alias = "privateChannel")]
+    PrivateChannel,
+    #[serde(alias = "public_channel", alias = "publicChannel")]
+    PublicChannel,
+}
+
+#[derive(Debug, FromRow, ToSchema, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct Chat {
     pub id: i64,
@@ -77,20 +95,6 @@ pub struct Chat {
     pub agents: Vec<i64>,
     #[serde(alias = "createdAt")]
     pub created_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Serialize, ToSchema, Deserialize, PartialEq, PartialOrd, sqlx::Type)]
-#[sqlx(type_name = "chat_type", rename_all = "snake_case")]
-#[serde(rename_all(serialize = "camelCase"))]
-pub enum ChatType {
-    #[serde(alias = "single", alias = "Single")]
-    Single,
-    #[serde(alias = "group", alias = "Group")]
-    Group,
-    #[serde(alias = "private_channel", alias = "privateChannel")]
-    PrivateChannel,
-    #[serde(alias = "public_channel", alias = "publicChannel")]
-    PublicChannel,
 }
 
 #[derive(Debug, Clone, FromRow, ToSchema, Serialize, Deserialize, PartialEq)]
@@ -109,7 +113,7 @@ pub struct Message {
 }
 
 #[derive(
-    Debug, Clone, Default, Serialize, ToSchema, Deserialize, PartialEq, PartialOrd, sqlx::Type,
+    Debug, Clone, Default, ToSchema, Serialize, Deserialize, PartialEq, PartialOrd, sqlx::Type,
 )]
 #[sqlx(type_name = "agent_type", rename_all = "snake_case")]
 #[serde(rename_all(serialize = "camelCase"))]
@@ -123,6 +127,17 @@ pub enum AgentType {
     Tap,
 }
 
+#[derive(
+    Debug, Clone, Default, ToSchema, Serialize, Deserialize, PartialEq, PartialOrd, sqlx::Type,
+)]
+#[sqlx(type_name = "adapter_type", rename_all = "snake_case")]
+#[serde(rename_all(serialize = "camelCase"))]
+pub enum AdapterType {
+    #[default]
+    #[serde(alias = "ollama", alias = "Ollama")]
+    Ollama,
+}
+
 #[derive(Debug, Clone, FromRow, ToSchema, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct ChatAgent {
@@ -131,6 +146,8 @@ pub struct ChatAgent {
     pub chat_id: i64,
     pub name: String,
     pub r#type: AgentType,
+    pub adapter: AdapterType,
+    pub model: String,
     pub prompt: String,
     #[schema(value_type = Object)]
     pub args: sqlx::types::Json<serde_json::Value>, // TODO: change to custom type
@@ -141,9 +158,7 @@ pub struct ChatAgent {
 }
 
 impl User {
-    pub fn new(id: i64, fullname: &str, email: &str) -> User {
-        use chrono::DateTime;
-
+    pub fn new(id: i64, fullname: &str, email: &str) -> Self {
         Self {
             id,
             ws_id: 0,
@@ -151,7 +166,7 @@ impl User {
             fullname: fullname.to_string(),
             email: email.to_string(),
             password_hash: None,
-            created_at: DateTime::default(),
+            created_at: chrono::Utc::now(),
         }
     }
 }

@@ -1,5 +1,4 @@
-use crate::{AiService, Message};
-use anyhow::Result;
+use crate::{AiAdapter, AiService, Message};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -66,10 +65,10 @@ impl Default for OllamaAdapter {
 }
 
 impl AiService for OllamaAdapter {
-    async fn complete(&self, message: &[crate::Message]) -> Result<String> {
+    async fn complete(&self, messages: &[Message]) -> anyhow::Result<String> {
         let request = OllamaChatCompletionRequest {
             model: self.model.clone(),
-            messages: message.iter().map(|m| m.into()).collect(),
+            messages: messages.iter().map(|m| m.into()).collect(),
             stream: false,
         };
         let url = format!("{}/api/chat", self.host);
@@ -79,11 +78,17 @@ impl AiService for OllamaAdapter {
     }
 }
 
+impl From<OllamaAdapter> for AiAdapter {
+    fn from(adapter: OllamaAdapter) -> Self {
+        AiAdapter::Ollama(adapter)
+    }
+}
+
 impl From<Message> for OllamaMessage {
     fn from(message: Message) -> Self {
         OllamaMessage {
             role: message.role.to_string(),
-            content: message.content.clone(),
+            content: message.content,
         }
     }
 }
@@ -100,17 +105,17 @@ impl From<&Message> for OllamaMessage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Role;
 
     #[ignore]
     #[tokio::test]
-    async fn ollama_complete_should_work() -> Result<()> {
+    async fn ollama_complete_should_work() {
         let adapter = OllamaAdapter::new_local("llama3.2");
-        let message = vec![Message {
-            role: crate::Role::User,
+        let messages = vec![Message {
+            role: Role::User,
             content: "Hello".to_string(),
         }];
-        let response = adapter.complete(&message).await?;
+        let response = adapter.complete(&messages).await.unwrap();
         println!("response: {}", response);
-        Ok(())
     }
 }
