@@ -217,6 +217,8 @@ impl ChatServer {
                 {
                     "name": "test agent",
                     "type": "proxy",
+                    "adapter": "ollama",
+                    "model": "llama3.2",
                     "prompt": ""
                 }
                 "#,
