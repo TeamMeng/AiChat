@@ -164,6 +164,38 @@ impl AppState {
 }
 
 #[cfg(test)]
+impl CreateAgent {
+    pub fn new(
+        name: impl Into<String>,
+        r#type: AgentType,
+        adapter: AdapterType,
+        model: impl Into<String>,
+        prompt: impl Into<String>,
+        args: impl Serialize,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            r#type,
+            adapter,
+            model: model.into(),
+            prompt: prompt.into(),
+            args: serde_json::to_value(args).unwrap(),
+        }
+    }
+}
+
+#[cfg(test)]
+impl UpdateAgent {
+    pub fn new(id: u64, prompt: impl Into<String>, args: impl Serialize) -> Self {
+        Self {
+            id,
+            prompt: prompt.into(),
+            args: serde_json::to_value(args).unwrap(),
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use anyhow::Result;
@@ -238,37 +270,5 @@ mod tests {
         assert_eq!(agent.prompt, "Can you tell me the weather in Tokyo?");
         assert_eq!(agent.args, sqlx::types::Json(serde_json::json!({})));
         Ok(())
-    }
-}
-
-#[cfg(test)]
-impl CreateAgent {
-    pub fn new(
-        name: impl Into<String>,
-        r#type: AgentType,
-        adapter: AdapterType,
-        model: impl Into<String>,
-        prompt: impl Into<String>,
-        args: impl Serialize,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            r#type,
-            adapter,
-            model: model.into(),
-            prompt: prompt.into(),
-            args: serde_json::to_value(args).unwrap(),
-        }
-    }
-}
-
-#[cfg(test)]
-impl UpdateAgent {
-    pub fn new(id: u64, prompt: impl Into<String>, args: impl Serialize) -> Self {
-        Self {
-            id,
-            prompt: prompt.into(),
-            args: serde_json::to_value(args).unwrap(),
-        }
     }
 }
