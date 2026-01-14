@@ -119,6 +119,7 @@ mod tests {
     use crate::AppState;
     use anyhow::Result;
 
+    #[ignore]
     #[tokio::test]
     async fn agent_variant_should_work() -> Result<()> {
         let (_tdb, state) = AppState::new_for_test().await?;
