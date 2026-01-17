@@ -1,0 +1,27 @@
+[package]
+name = "swiftide-pgvector"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+anyhow = "1.0.100"
+async-trait = "0.1.89"
+derive_builder = "0.20.2"
+pgvector = { version = "0.4.1", features = ["postgres", "sqlx"] }
+serde_json = "1.0.149"
+sqlx = { version = "0.8.6", features = [
+    "postgres",
+    "runtime-tokio-rustls",
+    "tls-rustls",
+    "uuid",
+] }
+swiftide = { version = "0.13.3", features = [
+    "fastembed",
+    "ollama",
+    "tree-sitter",
+] }
+swiftide-core = "0.13.4"
+tokio = { version = "1.49.0", features = ["rt", "rt-multi-thread", "macros"] }
+tracing = { version = "0.1.44", features = ["log"] }
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
