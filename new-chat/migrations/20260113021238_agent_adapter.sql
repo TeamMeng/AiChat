@@ -1,7 +1,8 @@
 -- Add migration script here
 CREATE TYPE adapter_type AS ENUM(
     'openai',
-    'ollama'
+    'ollama',
+    'test'
 );
 
 ALTER TABLE chat_agents
