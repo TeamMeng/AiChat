@@ -204,3 +204,37 @@ Authorization: Bearer {{token}}
     "content": "Well done! You made great progress today.",
     "files": []
 }
+
+### create a bot
+POST http://localhost:6688/api/signup
+Content-Type: application/json
+
+{
+    "workspace": "acme",
+    "fullname": "Her",
+    "email": "her@bot.org",
+    "password": "123456"
+}
+
+### create a chat between tyr and bot
+POST http://localhost:6688/api/chats
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "members": [1, 4],
+    "public": false
+}
+
+### create chat agent
+POST http://localhost:6688/api/chats/5/agents
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "code guru",
+    "type": "reply",
+    "adapter": "ollama",
+    "model": "llama3.2",
+    "prompt": "You will answer questions about code."
+}

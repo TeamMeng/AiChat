@@ -2,7 +2,7 @@ use crate::{AppError, AppState, agent::AgentVariant, models::ChatFile};
 use chat_core::{Agent, AgentContext, AgentDecision, ChatType, Message};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use tracing::{info, warn};
+use tracing::warn;
 use utoipa::{IntoParams, ToSchema};
 
 #[derive(Debug, Clone, ToSchema, Serialize, Deserialize)]
@@ -48,12 +48,16 @@ impl AppState {
 
         // if we have agent, apply it and get the result
         let mut agents = self.list_agents(chat_id).await?;
-        info!("chat_id: {}, agents: {:?}", chat_id, agents);
         let decision = if let Some(agent) = agents.pop() {
             let agent: AgentVariant = agent.into();
-            agent
-                .process(&input.content, &AgentContext::default())
-                .await?
+            match agent {
+                AgentVariant::Proxy(agent) => {
+                    agent
+                        .process(&input.content, &AgentContext::default())
+                        .await?
+                }
+                _ => AgentDecision::None,
+            }
         } else {
             AgentDecision::None
         };

@@ -10,11 +10,12 @@ use swiftide_core::Persist;
 pub struct PgVector {
     /// The database connection pool.
     pool: PgPool,
-    /// The name of the table to store the vector in.
+    /// The name of the table to store the vectors in.
     #[builder(default = "String::from(\"swiftide_rag\")")]
     table_name: String,
     /// The size of the vectors to store in the database.
     vector_size: i32,
+    /// The batch size to use when storing nodes.
     #[builder(default = "128")]
     batch_size: usize,
 }

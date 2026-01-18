@@ -44,7 +44,6 @@ impl AppState {
     }
 
     /// Find a user by id
-    #[allow(dead_code)]
     pub async fn find_user_by_id(&self, id: i64) -> Result<Option<User>, AppError> {
         let user = sqlx::query_as(
             "
@@ -73,18 +72,20 @@ impl AppState {
         };
 
         let password_hash = hash_password(&input.password)?;
+        let is_bot = input.email.ends_with("@bot.org");
 
         let mut user: User = sqlx::query_as(
             "
-            INSERT INTO users (ws_id, fullname, email, password_hash)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, ws_id, fullname, email, created_at
+            INSERT INTO users (ws_id, fullname, email, password_hash, is_bot)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, ws_id, fullname, email, is_bot, created_at
             ",
         )
         .bind(ws.id)
         .bind(&input.fullname)
         .bind(&input.email)
         .bind(password_hash)
+        .bind(is_bot)
         .fetch_one(&self.pool)
         .await?;
 
