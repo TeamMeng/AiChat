@@ -125,7 +125,7 @@ Content-Type: multipart/form-data; boundary=MyBoundary
 Content-Disposition: form-data; filename="1.jpg"
 Content-Type: application/octet-stream
 
-< /Users//Users/meng/Desktop/1.jpg
+< ./fixtures/1.jpg
 --MyBoundary
 Content-Disposition: form-data; filename="hello.txt"
 Content-Type: text/plain
@@ -135,11 +135,11 @@ Hello, World!
 
 
 ### get files
-GET http://localhost:6688/api/files/1/814/068/bdc40106c192ff26951d94b582c9dbec93.jpg
+GET http://localhost:6688/api/files/1/d79/340/e614f33a0d250d2e6bc2b620f618ae9cb5.jpg
 Authorization: Bearer {{token}}
 
 ### get files with token
-GET http://localhost:6688/api/files/1/814/068/bdc40106c192ff26951d94b582c9dbec93.jpg?token={{token}}
+GET http://localhost:6688/api/files/1/d79/340/e614f33a0d250d2e6bc2b620f618ae9cb5.jpg?token={{token}}
 
 ### send a message
 POST http://localhost:6688/api/chats/1
@@ -238,3 +238,12 @@ Content-Type: application/json
     "model": "llama3.2",
     "prompt": "You will answer questions about code."
 }
+
+### send an event
+curl -X POST http://localhost:6690/api/event \
+  -H "Content-Type: application/protobuf" \
+  -H "Authorization: Bearer {{token}}" \
+  -H "X-Country: China" \
+  -H "X-Region: Shanghai" \
+  -H "X-City: Shanghai" \
+  --data-binary @./fixtures/event.bin

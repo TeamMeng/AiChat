@@ -1,40 +1,29 @@
 [package]
-name = "chat-server"
+name = "analytics-server"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[features]
-default = []
-test-util = ["http-body-util", "sqlx-db-tester"]
-
 [dependencies]
-ai_sdk = { version = "0.1.0", path = "../ai_sdk" }
 anyhow = { workspace = true }
-argon2 = { version = "0.5.3", features = ["std"] }
+async-trait = { workspace = true }
 axum = { workspace = true }
 axum-extra = { workspace = true }
 chat_core = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
-hex = "0.4.3"
-http-body-util = { version = "0.1.2", optional = true }
-jwt-simple = { workspace = true }
-mime_guess = "2.0.5"
+clickhouse = { version = "0.14.2", features = ["rustls-tls", "time"] }
+futures-util = "0.3.31"
+prost = "0.14.3"
+prost-types = "0.14.3"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
-sha1 = "0.10.6"
 sqlx = { workspace = true }
-sqlx-db-tester = { version = "0.7.1", optional = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
-tokio-util = { version = "0.7.17", features = ["io"] }
-tower = { workspace = true }
 tower-http = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+tracing = { workspace = true, features = ["log"] }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 utoipa = { workspace = true }
 utoipa-axum = { workspace = true }
 utoipa-rapidoc = { workspace = true }
@@ -43,5 +32,17 @@ utoipa-scalar = { workspace = true }
 utoipa-swagger-ui = { workspace = true }
 uuid = { workspace = true }
 
+[build-dependencies]
+anyhow = { workspace = true }
+prost-build = "0.14.3"
+proto-builder-trait = { version = "0.6.2", features = [
+    "prost",
+], default-features = false }
+
 [dev-dependencies]
-chat-server = { workspace = true, features = ["test-util"] }
+clickhouse = { version = "0.14.2", features = [
+    "rustls-tls",
+    "time",
+    "test-util",
+] }
+reqwest = { version = "0.13.1", features = ["json"] }

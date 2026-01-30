@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "ai_sdk",
+    "analytics-server",
     "bot-server",
     "chat_core",
     "chat_server",
@@ -11,13 +12,14 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = "1.0.100"
+async-trait = "0.1.89"
 axum = { version = "0.8.8", features = [
     "multipart",
     "query",
     "tracing",
     # "macros",
 ] }
-axum-extra = { version = "0.12.3", features = ["typed-header"] }
+axum-extra = { version = "0.12.3", features = ["typed-header", "protobuf"] }
 chrono = { version = "0.4.42", features = ["serde"] }
 chat_core = { version = "0.1.0", path = "./chat_core" }
 chat-server = { version = "0.1.0", path = "./chat_server" }
@@ -45,4 +47,9 @@ tower-http = { version = "0.6.8", features = [
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
 utoipa = { version = "5.4.0", features = ["axum_extras", "chrono"] }
+utoipa-axum = "0.2.0"
+utoipa-rapidoc = { version = "6.0.0", features = ["axum"] }
+utoipa-redoc = { version = "6.0.0", features = ["axum"] }
+utoipa-scalar = { version = "0.3.0", features = ["axum"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
 uuid = { version = "1.19.0", features = ["v7", "serde"] }
