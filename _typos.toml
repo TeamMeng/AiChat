@@ -3,7 +3,8 @@
 [files]
 extend-exclude = [
   "CHANGELOG.md",
-  "chat/chat_server/fixtures/*",
-  "chat/chat_core/fixtures/*",
-  "chat/notify_server/*.html",
+  "new-chat/chat_server/fixtures/*",
+  "new-chat/chat_core/fixtures/*",
+  "new-chat/notify_server/*.html",
+  "chatapp/src/gen/messages_pb.ts"
 ]

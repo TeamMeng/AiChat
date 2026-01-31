@@ -10,16 +10,20 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.11.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "autoprefixer": "^10.4.23",
     "axios": "^1.13.2",
     "jwt-decode": "^4.0.0",
+    "uuid": "^13.0.0",
     "vue": "^3.5.13",
     "vue-router": "^4.6.4",
     "vuex": "^4.1.0"
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.64.0",
+    "@bufbuild/protoc-gen-es": "^2.11.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "^5.2.1",
