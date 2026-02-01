@@ -25,6 +25,11 @@ chat_core = { version = "0.1.0", path = "./chat_core" }
 chat-server = { version = "0.1.0", path = "./chat_server" }
 jwt-simple = "0.12.13"
 notify-server = { version = "0.1.0", path = "./notify_server" }
+reqwest = { version = "0.13.1", default-features = false, features = [
+    "json",
+    "multipart",
+    "stream",
+] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.147"
 serde_yaml = "0.9.34"

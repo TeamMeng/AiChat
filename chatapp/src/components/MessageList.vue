@@ -27,7 +27,7 @@
                         }}</span>
                     </div>
                     <div
-                        class="text-sm leading-relaxed break-words whitespace-pre-wrap"
+                        class="text-sm leading-relaxed wrap-break-word whitespace-pre-wrap"
                     >
                         {{ getMessageContent(message) }}
                     </div>
