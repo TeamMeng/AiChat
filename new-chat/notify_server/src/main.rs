@@ -9,7 +9,7 @@ async fn main() -> Result<()> {
     let layer = Layer::new().with_filter(LevelFilter::INFO);
     tracing_subscriber::registry().with(layer).init();
 
-    let config = AppConfig::load()?;
+    let config = AppConfig::load().expect("failed to load config");
     let addr = format!("0.0.0.0:{}", &config.server.port);
     info!("Listening on: {}", addr);
     let listener = TcpListener::bind(addr).await?;

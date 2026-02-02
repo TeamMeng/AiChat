@@ -32,6 +32,9 @@ pub enum AppError {
     #[error("create message error: {0}")]
     CreateMessageError(String),
 
+    #[error("not logged in")]
+    NotLoggedInError,
+
     #[error("{0}")]
     ChatFileError(String),
 
@@ -77,6 +80,7 @@ impl IntoResponse for AppError {
             Self::AnyError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::HttpHeaderError(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Self::AiAgentError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::NotLoggedInError => StatusCode::UNAUTHORIZED,
         };
 
         (status, Json(ErrorOutput::new(self.to_string()))).into_response()
