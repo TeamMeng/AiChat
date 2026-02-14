@@ -1,4 +1,4 @@
-use crate::{AppError, AppState, error::ErrorOutput, models::CreateChat};
+use crate::{AppError, AppState, error::ErrorOutput, models::{CreateChat, UpdateChat, AddMembers}};
 use axum::{
     Extension, Json,
     extract::{Path, State},
@@ -56,12 +56,71 @@ pub(crate) async fn get_chat_handler(
     }
 }
 
-pub(crate) async fn update_chat_handler() -> impl IntoResponse {
-    "update chat"
+pub(crate) async fn update_chat_handler(
+    Extension(user): Extension<User>,
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+    Json(input): Json<UpdateChat>,
+) -> Result<impl IntoResponse, AppError> {
+    // Check if user is a member of the chat
+    if !state.is_chat_member(id, user.id as _).await? {
+        return Err(AppError::NotFound(format!("chat id: {} not found", id)));
+    }
+
+    if let Some(name) = input.name {
+        let chat = state.update_chat_name(id, &name).await?;
+        Ok((StatusCode::OK, Json(chat)).into_response())
+    } else {
+        Err(AppError::CreateChatError("name is required".to_string()))
+    }
 }
 
-pub(crate) async fn delete_chat_handler() -> impl IntoResponse {
-    "delete chat"
+pub(crate) async fn delete_chat_handler(
+    Extension(user): Extension<User>,
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+) -> Result<impl IntoResponse, AppError> {
+    // Check if user is a member of the chat
+    if !state.is_chat_member(id, user.id as _).await? {
+        return Err(AppError::NotFound(format!("chat id: {} not found", id)));
+    }
+
+    state.delete_chat(id).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
+}
+
+pub(crate) async fn add_members_handler(
+    Extension(user): Extension<User>,
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+    Json(input): Json<AddMembers>,
+) -> Result<impl IntoResponse, AppError> {
+    // Check if user is a member of the chat
+    if !state.is_chat_member(id, user.id as _).await? {
+        return Err(AppError::NotFound(format!("chat id: {} not found", id)));
+    }
+
+    let chat = state.add_members_to_chat(id, &input.members).await?;
+    Ok((StatusCode::OK, Json(chat)).into_response())
+}
+
+pub(crate) async fn remove_member_handler(
+    Extension(user): Extension<User>,
+    State(state): State<AppState>,
+    Path((chat_id, member_id)): Path<(u64, u64)>,
+) -> Result<impl IntoResponse, AppError> {
+    // Check if user is a member of the chat
+    if !state.is_chat_member(chat_id, user.id as _).await? {
+        return Err(AppError::NotFound(format!("chat id: {} not found", chat_id)));
+    }
+
+    // User can only remove themselves
+    if user.id as u64 != member_id {
+        return Err(AppError::NotFound("you can only remove yourself".to_string()));
+    }
+
+    state.remove_member_from_chat(chat_id, member_id).await?;
+    Ok(StatusCode::NO_CONTENT.into_response())
 }
 
 /// Create a new chat in the workspace of the user

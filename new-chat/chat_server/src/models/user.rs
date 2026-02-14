@@ -27,6 +27,14 @@ pub struct SigninUser {
     pub password: String,
 }
 
+#[derive(Debug, Serialize, ToSchema, Deserialize, Clone)]
+pub struct ChangePasswordInput {
+    /// Current password
+    pub old_password: String,
+    /// New password
+    pub new_password: String,
+}
+
 impl AppState {
     /// Find a user by email
     pub async fn find_user_by_email(&self, email: &str) -> Result<Option<User>, AppError> {
@@ -158,6 +166,55 @@ impl AppState {
         .fetch_all(&self.pool)
         .await?;
         Ok(users)
+    }
+
+    /// Change user password
+    pub async fn change_password(
+        &self,
+        user_id: i64,
+        input: &ChangePasswordInput,
+    ) -> Result<(), AppError> {
+        // First, verify the old password
+        let user: Option<User> = sqlx::query_as(
+            "
+            SELECT id, ws_id, fullname, email, password_hash, created_at
+            FROM users
+            WHERE id = $1
+            ",
+        )
+        .bind(user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let user = user.ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+
+        let password_hash = user.password_hash.ok_or_else(|| {
+            AppError::NotFound("Password hash not found".to_string())
+        })?;
+
+        // Verify old password
+        let is_valid = verify_password(&input.old_password, &password_hash)?;
+        if !is_valid {
+            return Err(AppError::NotFound("Invalid old password".to_string()));
+        }
+
+        // Hash new password
+        let new_password_hash = hash_password(&input.new_password)?;
+
+        // Update password
+        sqlx::query(
+            "
+            UPDATE users
+            SET password_hash = $1
+            WHERE id = $2
+            ",
+        )
+        .bind(new_password_hash)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 }
 
@@ -305,6 +362,67 @@ mod tests {
 
         let is_valid = verify_password(password, &password_hash)?;
         assert!(is_valid);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn change_password_should_work() -> Result<()> {
+        let (_tdb, state) = AppState::new_for_test().await?;
+
+        // User 1 exists with password "123456"
+        let old_password = "123456";
+        let new_password = "newpassword123";
+
+        let input = ChangePasswordInput {
+            old_password: old_password.to_string(),
+            new_password: new_password.to_string(),
+        };
+
+        // Change password should succeed
+        state.change_password(1, &input).await?;
+
+        // Verify old password no longer works
+        let signin_input = SigninUser::new("Test@123.com", old_password);
+        let user = state.verify_user(&signin_input).await?;
+        assert!(user.is_none());
+
+        // Verify new password works
+        let signin_input = SigninUser::new("Test@123.com", new_password);
+        let user = state.verify_user(&signin_input).await?;
+        assert!(user.is_some());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn change_password_with_wrong_old_password_should_fail() -> Result<()> {
+        let (_tdb, state) = AppState::new_for_test().await?;
+
+        let input = ChangePasswordInput {
+            old_password: "wrongpassword".to_string(),
+            new_password: "newpassword123".to_string(),
+        };
+
+        // Should fail with wrong old password
+        let result = state.change_password(1, &input).await;
+        assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn change_password_with_non_existent_user_should_fail() -> Result<()> {
+        let (_tdb, state) = AppState::new_for_test().await?;
+
+        let input = ChangePasswordInput {
+            old_password: "123456".to_string(),
+            new_password: "newpassword123".to_string(),
+        };
+
+        // Should fail with non-existent user
+        let result = state.change_password(9999, &input).await;
+        assert!(result.is_err());
 
         Ok(())
     }

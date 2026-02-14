@@ -8,12 +8,36 @@ use std::{collections::HashSet, sync::Arc};
 use tracing::{info, warn};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct WorkspaceDeleted {
+    pub id: i64,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WorkspaceUpdated {
+    pub id: i64,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserJoinedWorkspace {
+    pub workspace_id: i64,
+    pub workspace_name: String,
+    pub user_id: i64,
+    pub user_name: String,
+    pub user_email: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "camelCase")]
 pub enum AppEvent {
     NewChat(Chat),
     AddToChat(Chat),
     RemoveFromChat(Chat),
     NewMessage(Message),
+    WorkspaceDeleted(WorkspaceDeleted),
+    WorkspaceUpdated(WorkspaceUpdated),
+    UserJoinedWorkspace(UserJoinedWorkspace),
 }
 
 #[derive(Debug)]
@@ -35,10 +59,41 @@ struct ChatMessageCreated {
     members: Vec<i64>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct WorkspaceDeletedPayload {
+    workspace: WorkspaceInfo,
+    users: Vec<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct WorkspaceUpdatedPayload {
+    workspace: WorkspaceInfo,
+    users: Vec<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct UserJoinedWorkspacePayload {
+    workspace_id: i64,
+    workspace_name: String,
+    user_id: i64,
+    user_name: String,
+    user_email: String,
+    users: Vec<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct WorkspaceInfo {
+    id: i64,
+    name: String,
+}
+
 pub async fn setup_pg_listener(state: AppState) -> Result<()> {
     let mut listener = PgListener::connect(&state.config.server.db_url).await?;
     listener.listen("chat_updated").await?;
     listener.listen("chat_message_created").await?;
+    listener.listen("workspace_deleted").await?;
+    listener.listen("workspace_updated").await?;
+    listener.listen("user_joined_workspace").await?;
 
     let mut stream = listener.into_stream();
 
@@ -88,6 +143,48 @@ impl Notification {
                 Ok(Self {
                     user_ids,
                     event: Arc::new(AppEvent::NewMessage(payload.message)),
+                })
+            }
+            "workspace_deleted" => {
+                let payload: WorkspaceDeletedPayload = serde_json::from_str(payload)?;
+                info!("WorkspaceDeleted: {:?}", payload);
+                let user_ids = payload.users.iter().map(|v| *v as u64).collect();
+                let event = AppEvent::WorkspaceDeleted(WorkspaceDeleted {
+                    id: payload.workspace.id,
+                    name: payload.workspace.name,
+                });
+                Ok(Self {
+                    user_ids,
+                    event: Arc::new(event),
+                })
+            }
+            "workspace_updated" => {
+                let payload: WorkspaceUpdatedPayload = serde_json::from_str(payload)?;
+                info!("WorkspaceUpdated: {:?}", payload);
+                let user_ids = payload.users.iter().map(|v| *v as u64).collect();
+                let event = AppEvent::WorkspaceUpdated(WorkspaceUpdated {
+                    id: payload.workspace.id,
+                    name: payload.workspace.name,
+                });
+                Ok(Self {
+                    user_ids,
+                    event: Arc::new(event),
+                })
+            }
+            "user_joined_workspace" => {
+                let payload: UserJoinedWorkspacePayload = serde_json::from_str(payload)?;
+                info!("UserJoinedWorkspace: {:?}", payload);
+                let user_ids = payload.users.iter().map(|v| *v as u64).collect();
+                let event = AppEvent::UserJoinedWorkspace(UserJoinedWorkspace {
+                    workspace_id: payload.workspace_id,
+                    workspace_name: payload.workspace_name,
+                    user_id: payload.user_id,
+                    user_name: payload.user_name,
+                    user_email: payload.user_email,
+                });
+                Ok(Self {
+                    user_ids,
+                    event: Arc::new(event),
                 })
             }
             _ => Err(anyhow::anyhow!("Invalid notification type")),

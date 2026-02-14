@@ -327,6 +327,162 @@ export default createStore({
     async navigation({ state }, { from, to }) {
       await sendNavigationEvent(state.context, state.token, from, to);
     },
+    async changePassword({ state }, { oldPassword, newPassword }) {
+      try {
+        const response = await network(
+          this,
+          "post",
+          "/change-password",
+          {
+            old_password: oldPassword,
+            new_password: newPassword,
+          },
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+        return response.data;
+      } catch (error) {
+        console.error("Failed to change password:", error);
+        throw error;
+      }
+    },
+    async createChat({ state, commit }, { members, isPublic, name }) {
+      try {
+        const payload = {
+          members,
+          public: isPublic,
+        };
+
+        // Add name if provided
+        if (name) {
+          payload.name = name;
+        }
+
+        const response = await network(
+          this,
+          "post",
+          "/chats",
+          payload,
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+
+        const newChat = response.data;
+
+        // Add the new chat to channels
+        commit("addChannel", newChat);
+
+        // Send analytics event
+        await this.dispatch("chatCreated", { workspaceId: state.workspace.id });
+
+        return newChat;
+      } catch (error) {
+        console.error("Failed to create chat:", error);
+        throw error;
+      }
+    },
+    async addMembersToChat({ state, commit }, { chatId, memberIds }) {
+      try {
+        const response = await network(
+          this,
+          "post",
+          `/chats/${chatId}/members`,
+          { members: memberIds },
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+
+        const updatedChat = response.data;
+
+        // Update the channel in state
+        const channelIndex = state.channels.findIndex(c => c.id === chatId);
+        if (channelIndex !== -1) {
+          state.channels[channelIndex] = updatedChat;
+          localStorage.setItem("channels", JSON.stringify(state.channels));
+        }
+
+        return updatedChat;
+      } catch (error) {
+        console.error("Failed to add members:", error);
+        throw error;
+      }
+    },
+    async renameChat({ state, commit }, { chatId, name }) {
+      try {
+        const response = await network(
+          this,
+          "patch",
+          `/chats/${chatId}`,
+          { name },
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+
+        const updatedChat = response.data;
+
+        // Update the channel in state
+        const channelIndex = state.channels.findIndex(c => c.id === chatId);
+        if (channelIndex !== -1) {
+          state.channels[channelIndex] = updatedChat;
+          if (state.activeChannel?.id === chatId) {
+            state.activeChannel = updatedChat;
+          }
+          localStorage.setItem("channels", JSON.stringify(state.channels));
+        }
+
+        return updatedChat;
+      } catch (error) {
+        console.error("Failed to rename chat:", error);
+        throw error;
+      }
+    },
+    async leaveChat({ state, commit }, { chatId }) {
+      try {
+        await network(
+          this,
+          "delete",
+          `/chats/${chatId}/members/${state.user.id}`,
+          null,
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+
+        // Remove the channel from state
+        state.channels = state.channels.filter(c => c.id !== chatId);
+        localStorage.setItem("channels", JSON.stringify(state.channels));
+
+        // Send analytics event
+        await this.dispatch("chatLeft", { chatId });
+      } catch (error) {
+        console.error("Failed to leave chat:", error);
+        throw error;
+      }
+    },
+    async deleteChat({ state, commit }, { chatId }) {
+      try {
+        await network(
+          this,
+          "delete",
+          `/chats/${chatId}`,
+          null,
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+
+        // Remove the channel from state
+        state.channels = state.channels.filter(c => c.id !== chatId);
+        localStorage.setItem("channels", JSON.stringify(state.channels));
+      } catch (error) {
+        console.error("Failed to delete chat:", error);
+        throw error;
+      }
+    },
   },
   getters: {
     isAuthenticated(state) {

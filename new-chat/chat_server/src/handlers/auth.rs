@@ -1,9 +1,10 @@
 use crate::{
     AppError, AppState,
     error::ErrorOutput,
-    models::{CreateUser, SigninUser},
+    models::{CreateUser, SigninUser, ChangePasswordInput},
 };
-use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse, Extension};
+use chat_core::User;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -59,6 +60,24 @@ pub(crate) async fn signin_handler(
             Ok((StatusCode::FORBIDDEN, body).into_response())
         }
     }
+}
+
+/// Change user password
+#[utoipa::path(
+    post,
+    path = "/api/change-password",
+    responses(
+        (status = 200, description = "Password changed successfully")
+    )
+)]
+/// Change user password - requires authentication
+pub(crate) async fn change_password_handler(
+    Extension(user): Extension<User>,
+    State(state): State<AppState>,
+    Json(input): Json<ChangePasswordInput>,
+) -> Result<impl IntoResponse, AppError> {
+    state.change_password(user.id, &input).await?;
+    Ok((StatusCode::OK, Json(serde_json::json!({"message": "Password changed successfully"}))))
 }
 
 impl AuthOutput {
@@ -159,6 +178,86 @@ mod tests {
         let body = ret.into_body().collect().await?.to_bytes();
         let ret: ErrorOutput = serde_json::from_slice(&body)?;
         assert_eq!(ret.error, "Invalid email or password");
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn change_password_handler_should_work() -> Result<()> {
+        let (_tdb, state) = AppState::new_for_test().await?;
+
+        // First, sign in to get a user
+        let email = "Test@123.com";
+        let old_password = "123456";
+        let new_password = "newpassword123";
+
+        let signin_input = SigninUser::new(email, old_password);
+        let signin_response = signin_handler(State(state.clone()), Json(signin_input))
+            .await?
+            .into_response();
+
+        assert_eq!(signin_response.status(), StatusCode::OK);
+
+        let body = signin_response.into_body().collect().await?.to_bytes();
+        let auth_output: AuthOutput = serde_json::from_slice(&body)?;
+        let user = state.dk.verify(&auth_output.token)?;
+
+        // Change password
+        let change_input = ChangePasswordInput {
+            old_password: old_password.to_string(),
+            new_password: new_password.to_string(),
+        };
+
+        let ret = change_password_handler(
+            Extension(user),
+            State(state.clone()),
+            Json(change_input),
+        )
+        .await?
+        .into_response();
+
+        assert_eq!(ret.status(), StatusCode::OK);
+
+        // Verify old password no longer works
+        let signin_input = SigninUser::new(email, old_password);
+        let ret = signin_handler(State(state.clone()), Json(signin_input))
+            .await
+            .into_response();
+
+        assert_eq!(ret.status(), StatusCode::FORBIDDEN);
+
+        // Verify new password works
+        let signin_input = SigninUser::new(email, new_password);
+        let ret = signin_handler(State(state), Json(signin_input))
+            .await?
+            .into_response();
+
+        assert_eq!(ret.status(), StatusCode::OK);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn change_password_with_wrong_old_password_should_fail() -> Result<()> {
+        let (_tdb, state) = AppState::new_for_test().await?;
+
+        // Get user
+        let user = state
+            .find_user_by_id(1)
+            .await?
+            .expect("user 1 should exist");
+
+        // Try to change password with wrong old password
+        let change_input = ChangePasswordInput {
+            old_password: "wrongpassword".to_string(),
+            new_password: "newpassword123".to_string(),
+        };
+
+        let ret = change_password_handler(Extension(user), State(state), Json(change_input))
+            .await
+            .into_response();
+
+        assert_eq!(ret.status(), StatusCode::NOT_FOUND);
 
         Ok(())
     }

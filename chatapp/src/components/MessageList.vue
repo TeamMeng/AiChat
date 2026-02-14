@@ -1,8 +1,8 @@
 <template>
-    <div class="flex-1 overflow-y-auto p-5 mb-10" ref="messageContainer">
+    <div class="flex-1 overflow-y-auto p-5 mb-10 bg-[#1e1e2e]" ref="messageContainer">
         <div
             v-if="messages.length === 0"
-            class="text-center text-gray-400 mt-5"
+            class="text-center text-[#6c7086] mt-5"
         >
             No messages in this channel yet.
         </div>
@@ -10,24 +10,24 @@
             <div
                 v-for="message in messages"
                 :key="message.id"
-                class="flex items-start mb-5"
+                class="flex items-start mb-5 hover:bg-[#313244]/30 p-2 rounded-lg transition-colors duration-200"
             >
                 <img
-                    :src="`https://ui-avatars.com/api/?name=${getSender(message.senderId).fullname.replace(' ', '+')}`"
-                    class="w-10 h-10 rounded-full mr-3"
+                    :src="`https://ui-avatars.com/api/?name=${getSender(message.senderId).fullname.replace(' ', '+')}&background=89b4fa&color=1e1e2e`"
+                    class="w-10 h-10 rounded-full mr-3 ring-2 ring-[#45475a]"
                     alt="Avatar"
                 />
                 <div class="max-w-4/5">
                     <div class="flex items-center mb-1">
-                        <span class="font-bold mr-2">{{
+                        <span class="font-bold mr-2 text-[#cdd6f4]">{{
                             getSender(message.senderId).fullname
                         }}</span>
-                        <span class="text-xs text-gray-500">{{
+                        <span class="text-xs text-[#9399b2]">{{
                             message.formattedCreatedAt
                         }}</span>
                     </div>
                     <div
-                        class="text-sm leading-relaxed wrap-break-word whitespace-pre-wrap"
+                        class="text-sm leading-relaxed wrap-break-word whitespace-pre-wrap text-[#bac2de]"
                     >
                         {{ getMessageContent(message) }}
                     </div>
@@ -43,7 +43,7 @@
                             <img
                                 :src="getFileUrl(file)"
                                 :class="{
-                                    'h-32 object-cover cursor-pointer': true,
+                                    'h-32 object-cover cursor-pointer rounded-lg border border-[#45475a] hover:border-[#89b4fa] transition-colors duration-200': true,
                                     'w-auto h-auto': enlargedImage[message.id],
                                 }"
                                 @click="toggleImage(message.id)"

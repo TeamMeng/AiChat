@@ -6,9 +6,10 @@ mod user;
 mod workspace;
 
 pub use agent::{CreateAgent, UpdateAgent};
-pub use chat::CreateChat;
+pub use chat::{CreateChat, UpdateChat, AddMembers};
 pub use message::{CreateMessage, ListMessages};
-pub use user::{CreateUser, SigninUser};
+pub use user::{CreateUser, SigninUser, ChangePasswordInput};
+pub use workspace::{WorkspaceInvitation, CreateInvitation, JoinWorkspace};
 
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;

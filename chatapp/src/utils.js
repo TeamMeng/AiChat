@@ -38,6 +38,20 @@ const initSSE = (store) => {
     store.commit("addMessage", { channelId: data.chatId, message: data });
   });
 
+  sse.addEventListener("UserJoinedWorkspace", (e) => {
+    let data = JSON.parse(e.data);
+    console.log("UserJoinedWorkspace:", data);
+
+    // Show a notification to the user
+    const message = `${data.user_name} (${data.user_email}) joined the workspace`;
+
+    // You can add a toast notification here if you have a notification system
+    console.log("Notification:", message);
+
+    // Optionally refresh the user list if needed
+    // store.dispatch("refreshUsers");
+  });
+
   sse.onmessage = (event) => {
     console.log("got event:", event);
     // const data = JSON.parse(event.data);

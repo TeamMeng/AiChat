@@ -54,6 +54,8 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
                 .patch(update_agent_handler),
         )
         .route("/{id}/messages", get(list_message_handler))
+        .route("/{id}/members", post(add_members_handler))
+        .route("/{id}/members/{member_id}", axum::routing::delete(remove_member_handler))
         .layer(from_fn_with_state(state.clone(), verify_chat))
         .route("/", get(list_chat_handler).post(create_chat_handler));
 
@@ -73,6 +75,11 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
         .nest("/chats", chat)
         .route("/upload", post(upload_handler))
         .route("/files/{ws_id}/{*path}", get(file_handler))
+        .route("/change-password", post(change_password_handler))
+        .route("/workspaces/invitations",
+            get(list_invitations_handler).post(create_invitation_handler))
+        .route("/workspaces/invitations/{id}", axum::routing::delete(deactivate_invitation_handler))
+        .route("/workspaces/join", post(join_workspace_handler))
         .layer(from_fn_with_state(state.clone(), verify_token::<AppState>))
         // routes doesn't need token verification
         .route("/signin", post(signin_handler))

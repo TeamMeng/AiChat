@@ -10,9 +10,18 @@ use tracing::warn;
 pub async fn verify_chat(State(state): State<AppState>, req: Request, next: Next) -> Response {
     // verify if user_id is a member of chat_id
     let (mut parts, body) = req.into_parts();
-    let Path(chat_id) = Path::<u64>::from_request_parts(&mut parts, &state)
-        .await
-        .unwrap();
+
+    // Extract chat_id from path - handle both single and multi-parameter routes
+    let chat_id = if let Ok(Path((id, _))) = Path::<(u64, u64)>::from_request_parts(&mut parts, &state).await {
+        // Route with two parameters like /{id}/members/{member_id}
+        id
+    } else if let Ok(Path(id)) = Path::<u64>::from_request_parts(&mut parts, &state).await {
+        // Route with single parameter like /{id}
+        id
+    } else {
+        warn!("failed to extract chat_id from path");
+        return AppError::NotFound("invalid chat path".to_string()).into_response();
+    };
 
     let Some(user) = parts.extensions.get::<User>() else {
         warn!("user not found in request");
