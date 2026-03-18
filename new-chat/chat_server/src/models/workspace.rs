@@ -187,19 +187,19 @@ impl AppState {
         }
 
         // Check if invitation has expired
-        if let Some(expires_at) = invitation.expires_at {
-            if expires_at < chrono::Utc::now() {
-                return Err(AppError::NotFound("Invitation has expired".to_string()));
-            }
+        if let Some(expires_at) = invitation.expires_at
+            && expires_at < chrono::Utc::now()
+        {
+            return Err(AppError::NotFound("Invitation has expired".to_string()));
         }
 
         // Check if invitation has reached max uses
-        if let Some(max_uses) = invitation.max_uses {
-            if invitation.used_count >= max_uses {
-                return Err(AppError::NotFound(
-                    "Invitation has reached maximum uses".to_string(),
-                ));
-            }
+        if let Some(max_uses) = invitation.max_uses
+            && invitation.used_count >= max_uses
+        {
+            return Err(AppError::NotFound(
+                "Invitation has reached maximum uses".to_string(),
+            ));
         }
 
         // Increment used count

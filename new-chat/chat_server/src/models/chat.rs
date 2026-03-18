@@ -88,12 +88,12 @@ impl AppState {
         .fetch_one(&self.pool)
         .await
         .map_err(|e| {
-            if let sqlx::Error::Database(db_err) = &e {
-                if db_err.constraint() == Some("chats_ws_id_name_key") {
-                    return AppError::CreateChatError(
-                        "a chat with this name already exists in your workspace".to_string(),
-                    );
-                }
+            if let sqlx::Error::Database(db_err) = &e
+                && db_err.constraint() == Some("chats_ws_id_name_key")
+            {
+                return AppError::CreateChatError(
+                    "a chat with this name already exists in your workspace".to_string(),
+                );
             }
             AppError::SqlxError(e)
         })?;
