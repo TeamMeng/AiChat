@@ -12,7 +12,9 @@ pub async fn verify_chat(State(state): State<AppState>, req: Request, next: Next
     let (mut parts, body) = req.into_parts();
 
     // Extract chat_id from path - handle both single and multi-parameter routes
-    let chat_id = if let Ok(Path((id, _))) = Path::<(u64, u64)>::from_request_parts(&mut parts, &state).await {
+    let chat_id = if let Ok(Path((id, _))) =
+        Path::<(u64, u64)>::from_request_parts(&mut parts, &state).await
+    {
         // Route with two parameters like /{id}/members/{member_id}
         id
     } else if let Ok(Path(id)) = Path::<u64>::from_request_parts(&mut parts, &state).await {

@@ -1,4 +1,8 @@
-use crate::{AppError, AppState, error::ErrorOutput, models::{CreateInvitation, JoinWorkspace, WorkspaceInvitation}};
+use crate::{
+    AppError, AppState,
+    error::ErrorOutput,
+    models::{CreateInvitation, JoinWorkspace, WorkspaceInvitation},
+};
 use axum::{Extension, Json, extract::State, http::StatusCode, response::IntoResponse};
 use chat_core::{ChatUser, User};
 
@@ -88,11 +92,15 @@ pub(crate) async fn join_workspace_handler(
     updated_user.ws_name = workspace.name.clone();
     let token = state.ek.sign(updated_user)?;
 
-    Ok((StatusCode::OK, Json(serde_json::json!({
-        "message": "Successfully joined workspace",
-        "workspace": workspace,
-        "token": token
-    }))).into_response())
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "message": "Successfully joined workspace",
+            "workspace": workspace,
+            "token": token
+        })),
+    )
+        .into_response())
 }
 
 #[utoipa::path(
@@ -112,7 +120,11 @@ pub(crate) async fn deactivate_invitation_handler(
     axum::extract::Path(id): axum::extract::Path<u64>,
 ) -> Result<impl IntoResponse, AppError> {
     state.deactivate_invitation(id, user.ws_id as _).await?;
-    Ok((StatusCode::OK, Json(serde_json::json!({
-        "message": "Invitation deactivated"
-    }))).into_response())
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "message": "Invitation deactivated"
+        })),
+    )
+        .into_response())
 }

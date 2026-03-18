@@ -1,4 +1,8 @@
-use crate::{AppError, AppState, error::ErrorOutput, models::{CreateChat, UpdateChat, AddMembers}};
+use crate::{
+    AppError, AppState,
+    error::ErrorOutput,
+    models::{AddMembers, CreateChat, UpdateChat},
+};
 use axum::{
     Extension, Json,
     extract::{Path, State},
@@ -111,12 +115,17 @@ pub(crate) async fn remove_member_handler(
 ) -> Result<impl IntoResponse, AppError> {
     // Check if user is a member of the chat
     if !state.is_chat_member(chat_id, user.id as _).await? {
-        return Err(AppError::NotFound(format!("chat id: {} not found", chat_id)));
+        return Err(AppError::NotFound(format!(
+            "chat id: {} not found",
+            chat_id
+        )));
     }
 
     // User can only remove themselves
     if user.id as u64 != member_id {
-        return Err(AppError::NotFound("you can only remove yourself".to_string()));
+        return Err(AppError::NotFound(
+            "you can only remove yourself".to_string(),
+        ));
     }
 
     state.remove_member_from_chat(chat_id, member_id).await?;

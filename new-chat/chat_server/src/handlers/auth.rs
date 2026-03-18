@@ -1,9 +1,9 @@
 use crate::{
     AppError, AppState,
     error::ErrorOutput,
-    models::{CreateUser, SigninUser, ChangePasswordInput},
+    models::{ChangePasswordInput, CreateUser, SigninUser},
 };
-use axum::{Json, extract::State, http::StatusCode, response::IntoResponse, Extension};
+use axum::{Extension, Json, extract::State, http::StatusCode, response::IntoResponse};
 use chat_core::User;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -77,7 +77,10 @@ pub(crate) async fn change_password_handler(
     Json(input): Json<ChangePasswordInput>,
 ) -> Result<impl IntoResponse, AppError> {
     state.change_password(user.id, &input).await?;
-    Ok((StatusCode::OK, Json(serde_json::json!({"message": "Password changed successfully"}))))
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Password changed successfully"})),
+    ))
 }
 
 impl AuthOutput {
@@ -208,13 +211,10 @@ mod tests {
             new_password: new_password.to_string(),
         };
 
-        let ret = change_password_handler(
-            Extension(user),
-            State(state.clone()),
-            Json(change_input),
-        )
-        .await?
-        .into_response();
+        let ret =
+            change_password_handler(Extension(user), State(state.clone()), Json(change_input))
+                .await?
+                .into_response();
 
         assert_eq!(ret.status(), StatusCode::OK);
 

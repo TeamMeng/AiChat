@@ -27,7 +27,6 @@ pub struct JoinWorkspace {
     pub invite_code: String,
 }
 
-
 impl AppState {
     pub async fn create_workspace(&self, name: &str, user_id: u64) -> Result<Workspace, AppError> {
         let ws = sqlx::query_as(
@@ -120,9 +119,9 @@ impl AppState {
         // Generate a unique invite code
         let invite_code = generate_invite_code();
 
-        let expires_at = input.expires_in_days.map(|days| {
-            chrono::Utc::now() + chrono::Duration::days(days as i64)
-        });
+        let expires_at = input
+            .expires_in_days
+            .map(|days| chrono::Utc::now() + chrono::Duration::days(days as i64));
 
         let invitation = sqlx::query_as(
             "
@@ -177,13 +176,14 @@ impl AppState {
         .fetch_optional(&self.pool)
         .await?;
 
-        let invitation = invitation.ok_or_else(|| {
-            AppError::NotFound("Invalid invitation code".to_string())
-        })?;
+        let invitation =
+            invitation.ok_or_else(|| AppError::NotFound("Invalid invitation code".to_string()))?;
 
         // Check if invitation is active
         if !invitation.is_active {
-            return Err(AppError::NotFound("Invitation is no longer active".to_string()));
+            return Err(AppError::NotFound(
+                "Invitation is no longer active".to_string(),
+            ));
         }
 
         // Check if invitation has expired
@@ -196,7 +196,9 @@ impl AppState {
         // Check if invitation has reached max uses
         if let Some(max_uses) = invitation.max_uses {
             if invitation.used_count >= max_uses {
-                return Err(AppError::NotFound("Invitation has reached maximum uses".to_string()));
+                return Err(AppError::NotFound(
+                    "Invitation has reached maximum uses".to_string(),
+                ));
             }
         }
 
@@ -418,7 +420,10 @@ mod tests {
 
         // Check used count increased
         let invitations = state.get_workspace_invitations(1).await?;
-        let updated = invitations.iter().find(|i| i.invite_code == invite_code).unwrap();
+        let updated = invitations
+            .iter()
+            .find(|i| i.invite_code == invite_code)
+            .unwrap();
         assert_eq!(updated.used_count, 1);
 
         // Second use
@@ -458,10 +463,14 @@ mod tests {
             expires_in_days: Some(7),
             max_uses: Some(10),
         };
-        let invitation = state.create_invitation(ws.id as u64, 1, &invite_input).await?;
+        let invitation = state
+            .create_invitation(ws.id as u64, 1, &invite_input)
+            .await?;
 
         // User joins the new workspace
-        let joined_ws = state.join_workspace_with_invitation(user.id as u64, &invitation.invite_code).await?;
+        let joined_ws = state
+            .join_workspace_with_invitation(user.id as u64, &invitation.invite_code)
+            .await?;
 
         assert_eq!(joined_ws.id, ws.id);
         assert_eq!(joined_ws.name, "test_workspace");
@@ -488,7 +497,9 @@ mod tests {
         state.deactivate_invitation(invitation.id as u64, 1).await?;
 
         // Try to use the deactivated invitation
-        let result = state.validate_and_use_invitation(&invitation.invite_code).await;
+        let result = state
+            .validate_and_use_invitation(&invitation.invite_code)
+            .await;
         assert!(result.is_err());
 
         Ok(())
@@ -510,7 +521,9 @@ mod tests {
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         // Try to use the expired invitation
-        let result = state.validate_and_use_invitation(&invitation.invite_code).await;
+        let result = state
+            .validate_and_use_invitation(&invitation.invite_code)
+            .await;
         assert!(result.is_err());
 
         Ok(())

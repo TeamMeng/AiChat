@@ -188,9 +188,9 @@ impl AppState {
 
         let user = user.ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
-        let password_hash = user.password_hash.ok_or_else(|| {
-            AppError::NotFound("Password hash not found".to_string())
-        })?;
+        let password_hash = user
+            .password_hash
+            .ok_or_else(|| AppError::NotFound("Password hash not found".to_string()))?;
 
         // Verify old password
         let is_valid = verify_password(&input.old_password, &password_hash)?;

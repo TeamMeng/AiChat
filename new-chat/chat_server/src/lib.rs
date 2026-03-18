@@ -55,7 +55,10 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
         )
         .route("/{id}/messages", get(list_message_handler))
         .route("/{id}/members", post(add_members_handler))
-        .route("/{id}/members/{member_id}", axum::routing::delete(remove_member_handler))
+        .route(
+            "/{id}/members/{member_id}",
+            axum::routing::delete(remove_member_handler),
+        )
         .layer(from_fn_with_state(state.clone(), verify_chat))
         .route("/", get(list_chat_handler).post(create_chat_handler));
 
@@ -76,9 +79,14 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
         .route("/upload", post(upload_handler))
         .route("/files/{ws_id}/{*path}", get(file_handler))
         .route("/change-password", post(change_password_handler))
-        .route("/workspaces/invitations",
-            get(list_invitations_handler).post(create_invitation_handler))
-        .route("/workspaces/invitations/{id}", axum::routing::delete(deactivate_invitation_handler))
+        .route(
+            "/workspaces/invitations",
+            get(list_invitations_handler).post(create_invitation_handler),
+        )
+        .route(
+            "/workspaces/invitations/{id}",
+            axum::routing::delete(deactivate_invitation_handler),
+        )
         .route("/workspaces/join", post(join_workspace_handler))
         .layer(from_fn_with_state(state.clone(), verify_token::<AppState>))
         // routes doesn't need token verification
@@ -166,7 +174,7 @@ mod test_util {
     pub async fn get_test_pool(url: Option<&str>) -> (TestPg, PgPool) {
         let url = match url {
             Some(url) => url.to_string(),
-            None => "postgres://postgres:postgres@localhost:5432".to_string(),
+            None => "postgres://postgres:postgres@localhost:5433".to_string(),
         };
         let tdb = TestPg::new(url, Path::new("../migrations"));
         let pool = tdb.get_pool().await;

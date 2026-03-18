@@ -146,11 +146,7 @@ impl AppState {
         Ok(is_member.is_some())
     }
 
-    pub async fn update_chat_name(
-        &self,
-        chat_id: u64,
-        name: &str,
-    ) -> Result<Chat, AppError> {
+    pub async fn update_chat_name(&self, chat_id: u64, name: &str) -> Result<Chat, AppError> {
         if name.len() < 3 {
             return Err(AppError::CreateChatError(
                 "chat name must have at least 3 characters".to_string(),
