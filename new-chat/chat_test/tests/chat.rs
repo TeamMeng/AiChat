@@ -3,10 +3,9 @@ use chat_core::{Chat, ChatAgent, ChatType, Message};
 use chat_server::{AppState, get_router};
 use futures::StreamExt;
 use reqwest::{
-    Client, StatusCode,
+    Client, Response, StatusCode,
     multipart::{Form, Part},
 };
-use reqwest_eventsource::{Event, EventSource};
 use serde::Deserialize;
 use std::{net::SocketAddr, time::Duration};
 use tokio::{net::TcpListener, time::sleep};
@@ -50,40 +49,82 @@ impl NotifyServer {
 
         tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
 
-        let mut es = EventSource::get(format!("http://{}/events?token={}", addr, token));
+        let response = Client::new()
+            .get(format!("http://{}/events?token={}", addr, token))
+            .send()
+            .await?;
 
         tokio::spawn(async move {
-            while let Some(event) = es.next().await {
-                match event {
-                    Ok(Event::Open) => println!("Connection Open!"),
-                    Ok(Event::Message(message)) => match message.event.as_str() {
-                        "NewChat" => {
-                            let chat: Chat = serde_json::from_str(&message.data).unwrap();
-                            assert_eq!(chat.name, Some("test".to_string()));
-                            assert_eq!(chat.members, vec![1, 2]);
-                            assert_eq!(chat.r#type, ChatType::PrivateChannel);
-                        }
-
-                        "NewMessage" => {
-                            let msg: Message = serde_json::from_str(&message.data).unwrap();
-                            assert_eq!(msg.content, "Hello World!");
-                            assert_eq!(msg.files.len(), 0);
-                            assert_eq!(msg.sender_id, 1);
-                        }
-                        _ => {
-                            panic!("unexpected event: {:?}", message);
-                        }
-                    },
-                    Err(e) => {
-                        println!("Error: {}", e);
-                        es.close();
-                    }
-                }
+            if let Err(e) = consume_events(response).await {
+                println!("Error: {e}");
             }
         });
 
         Ok(NotifyServer)
     }
+}
+
+async fn consume_events(response: Response) -> Result<()> {
+    let mut stream = response.bytes_stream();
+    let mut buffer = String::new();
+
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        buffer.push_str(std::str::from_utf8(&chunk)?);
+
+        while let Some(idx) = buffer.find("\n\n") {
+            let frame = buffer[..idx].replace("\r", "");
+            buffer.drain(..idx + 2);
+
+            if frame.trim().is_empty() {
+                continue;
+            }
+
+            handle_event(&frame)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn handle_event(frame: &str) -> Result<()> {
+    let mut event = None;
+    let mut data = Vec::new();
+
+    for line in frame.lines() {
+        if let Some(value) = line.strip_prefix("event:") {
+            event = Some(value.trim().to_string());
+        } else if let Some(value) = line.strip_prefix("data:") {
+            data.push(value.trim_start().to_string());
+        }
+    }
+
+    let data = data.join("\n");
+
+    match event.as_deref() {
+        Some("NewChat") => {
+            let chat: Chat = serde_json::from_str(&data)?;
+            assert_eq!(chat.name, Some("test".to_string()));
+            assert_eq!(chat.members, vec![1, 2]);
+            assert_eq!(chat.r#type, ChatType::PrivateChannel);
+        }
+        Some("NewMessage") => {
+            let msg: Message = serde_json::from_str(&data)?;
+            assert_eq!(msg.content, "Hello World!");
+            assert_eq!(msg.files.len(), 0);
+            assert_eq!(msg.sender_id, 1);
+        }
+        Some(other) => {
+            panic!("unexpected event: {other} with data: {data}");
+        }
+        None => {
+            if !data.is_empty() {
+                panic!("unexpected unnamed event with data: {data}");
+            }
+        }
+    }
+
+    Ok(())
 }
 
 impl ChatServer {
