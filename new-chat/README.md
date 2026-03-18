@@ -86,3 +86,36 @@ cargo audit 是一个 Rust 检查已知的漏洞安全和依赖安全的工具
 ```bash
 cargo install cargo-audit
 ```
+
+## 测试与 CI
+
+### 运行测试
+
+在 `new-chat` workspace 根目录执行：
+
+```bash
+cargo test
+```
+
+如果只想编译测试而不执行，可以使用：
+
+```bash
+cargo test --no-run
+```
+
+### 关于 SSE 测试依赖
+
+`chat_test` 中的 SSE 集成测试现在直接使用 `reqwest` 流式读取事件，不再依赖 `reqwest-eventsource`。这样可以避免在 Linux CI 上额外引入 `native-tls/OpenSSL` 链接问题。
+
+### 关于无外网环境
+
+当前项目依赖 `utoipa-swagger-ui`。它的构建脚本会在编译时下载 Swagger UI 静态资源。
+
+如果构建环境无法访问 GitHub，编译可能失败，并出现类似下面的错误：
+
+```text
+failed to download Swagger UI
+curl: (6) Could not resolve host: github.com
+```
+
+这类失败通常不是 Rust 代码本身的问题，而是构建环境缺少外网访问能力。
