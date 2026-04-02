@@ -87,7 +87,9 @@ pub(crate) async fn delete_message_handler(
     State(state): State<AppState>,
     Path((chat_id, message_id)): Path<(u64, u64)>,
 ) -> Result<impl IntoResponse, AppError> {
-    state.delete_message(chat_id, message_id, user.id as _).await?;
+    state
+        .delete_message(chat_id, message_id, user.id as _)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
