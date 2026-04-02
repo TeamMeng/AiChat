@@ -161,6 +161,30 @@ impl AppState {
 
         Ok(agent)
     }
+
+    /// delete an agent from a chat
+    pub async fn delete_agent(&self, chat_id: u64, agent_id: u64) -> Result<(), AppError> {
+        // check if agent exists
+        if !self.agent_id_exists(chat_id, agent_id).await? {
+            info!("Agent {agent_id} does not exist in chat {chat_id}");
+            return Err(AppError::DeleteAgentError(format!(
+                "Agent {} does not exist",
+                agent_id
+            )));
+        }
+
+        let _: (i64,) = sqlx::query_as(
+            r#"
+            DELETE FROM chat_agents WHERE chat_id = $1 AND id = $2
+            "#,
+        )
+        .bind(chat_id as i64)
+        .bind(agent_id as i64)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

@@ -53,7 +53,12 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
                 .post(create_agent_handler)
                 .patch(update_agent_handler),
         )
+        .route(
+            "/{id}/agents/{agent_id}",
+            axum::routing::delete(delete_agent_handler),
+        )
         .route("/{id}/messages", get(list_message_handler))
+        .route("/{id}/messages/{message_id}", axum::routing::delete(delete_message_handler))
         .route("/{id}/members", post(add_members_handler))
         .route(
             "/{id}/members/{member_id}",

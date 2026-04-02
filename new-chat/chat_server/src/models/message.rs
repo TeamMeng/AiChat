@@ -147,6 +147,45 @@ impl AppState {
 
         Ok(messages)
     }
+
+    pub async fn delete_message(
+        &self,
+        chat_id: u64,
+        message_id: u64,
+        user_id: u64,
+    ) -> Result<(), AppError> {
+        // verify message exists and belongs to the chat
+        let message: Message = sqlx::query_as(
+            r#"
+            SELECT id, chat_id, sender_id, content, modified_content, files, created_at
+            FROM messages
+            WHERE id = $1 AND chat_id = $2
+            "#,
+        )
+        .bind(message_id as i64)
+        .bind(chat_id as i64)
+        .fetch_one(&self.pool)
+        .await?;
+
+        // verify user is the sender
+        if message.sender_id != user_id as i64 {
+            return Err(AppError::DeleteMessageError(
+                "You are not authorized to delete this message".to_string(),
+            ));
+        }
+
+        // delete the message
+        let _: (i64,) = sqlx::query_as(
+            r#"
+            DELETE FROM messages WHERE id = $1
+            "#,
+        )
+        .bind(message_id as i64)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

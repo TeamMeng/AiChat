@@ -1,12 +1,12 @@
 <template>
     <div
-        class="flex flex-col bg-[#313244] border-t border-[#45475a] relative bottom-0"
+        class="flex flex-col bg-gradient-to-t from-[#313244] to-[#2a2a3c] border-t border-[#45475a] relative bottom-0"
     >
-        <div class="flex items-center p-2">
+        <div class="flex items-center gap-3 p-3">
             <button
                 @click="triggerFileUpload"
                 :disabled="isUploading"
-                class="p-2 mr-2 text-[#9399b2] hover:text-[#89b4fa] focus:outline-none transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="p-2.5 text-[#9399b2] hover:text-[#89b4fa] hover:bg-[#45475a] rounded-lg focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <svg
                     v-if="!isUploading"
@@ -36,33 +36,40 @@
                 accept="image/*"
                 class="hidden"
             />
-            <!-- Add more image buttons here if needed -->
         </div>
 
-        <div class="px-2">
+        <div class="px-3 pb-2">
             <textarea
                 v-model="message"
-                @keyup.enter="sendMessage"
+                @keyup.enter.exact="sendMessage"
                 placeholder="Type a message..."
-                class="w-full px-4 py-3 text-sm bg-[#1e1e2e] text-[#cdd6f4] placeholder-[#6c7086] border border-[#45475a] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#89b4fa] focus:border-transparent resize-none transition-all duration-200"
+                class="w-full px-4 py-3 text-sm bg-[#1e1e2e] text-[#cdd6f4] placeholder-[#6c7086] border border-[#45475a] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#89b4fa] focus:border-transparent resize-none transition-all duration-200"
                 rows="3"
             ></textarea>
         </div>
 
-        <div v-if="files.length > 0" class="flex flex-wrap p-2">
-            <img
-                v-for="file in files"
-                :key="file.path"
-                :src="file.fullUrl"
-                class="h-64 object-cover rounded-lg mr-2 mb-2 border-2 border-[#45475a]"
-                alt="Uploaded image"
-            />
+        <div v-if="files.length > 0" class="flex flex-wrap px-3 pb-2 gap-2">
+            <div v-for="file in files" :key="file.path" class="relative group">
+                <img
+                    :src="file.fullUrl"
+                    class="h-20 w-20 object-cover rounded-lg border border-[#45475a] group-hover:border-[#89b4fa] transition-all duration-200"
+                    alt="Uploaded image"
+                />
+                <button
+                    @click="removeFile(file)"
+                    class="absolute -top-2 -right-2 bg-[#f38ba8] text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <button
             @click="sendMessage"
             :disabled="isSending || message.trim() === ''"
-            class="absolute bottom-4 right-4 p-2 text-[#1e1e2e] bg-gradient-to-r from-[#89b4fa] to-[#74c7ec] rounded-full hover:from-[#74c7ec] hover:to-[#89dceb] focus:outline-none transition-all duration-200 transform hover:scale-110 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            class="absolute bottom-4 right-4 p-3 text-[#1e1e2e] bg-gradient-to-r from-[#89b4fa] to-[#74c7ec] rounded-full hover:from-[#74c7ec] hover:to-[#89dceb] focus:outline-none transition-all duration-200 transform hover:scale-110 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
         >
             <svg v-if="!isSending"
                 xmlns="http://www.w3.org/2000/svg"
@@ -157,10 +164,12 @@ export default {
                 this.files = [...this.files, ...uploadedFiles];
             } catch (error) {
                 console.error("Failed to upload files:", error);
-                // TODO: Show error notification to user
             } finally {
                 this.isUploading = false;
             }
+        },
+        removeFile(file) {
+            this.files = this.files.filter(f => f.path !== file.path);
         },
     },
 };

@@ -52,6 +52,7 @@ export default createStore({
     users: {}, // Users hashmap under workspace, keyed by user ID
     activeChannel: null,
     sse: null,
+    agents: {}, // Agents hashmap, keyed by channel ID
   },
   mutations: {
     setSSE(state, sse) {
@@ -97,6 +98,22 @@ export default createStore({
     setActiveChannel(state, channelId) {
       const channel = state.channels.find((c) => c.id === channelId);
       state.activeChannel = channel;
+    },
+    setAgents(state, { channelId, agents }) {
+      state.agents[channelId] = agents;
+    },
+    addAgent(state, { channelId, agent }) {
+      if (!state.agents[channelId]) {
+        state.agents[channelId] = [];
+      }
+      state.agents[channelId].push(agent);
+    },
+    removeAgent(state, { channelId, agentId }) {
+      if (state.agents[channelId]) {
+        state.agents[channelId] = state.agents[channelId].filter(
+          (a) => a.id !== agentId
+        );
+      }
     },
     loadUserState(state) {
       setContext(state);
@@ -483,6 +500,88 @@ export default createStore({
         throw error;
       }
     },
+    async deleteMessage({ state, commit }, { chatId, messageId }) {
+      try {
+        await network(
+          this,
+          "delete",
+          `/chats/${chatId}/messages/${messageId}`,
+          null,
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+
+        // Remove the message from state
+        if (state.messages[chatId]) {
+          state.messages[chatId] = state.messages[chatId].filter(
+            m => m.id !== messageId
+          );
+          localStorage.setItem("messages", JSON.stringify(state.messages));
+        }
+      } catch (error) {
+        console.error("Failed to delete message:", error);
+        throw error;
+      }
+    },
+    async fetchAgentsForChannel({ state, commit }, channelId) {
+      try {
+        const response = await network(
+          this,
+          "get",
+          `/chats/${channelId}/agents`,
+          null,
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+        const agents = response.data;
+        commit("setAgents", { channelId, agents });
+        return agents;
+      } catch (error) {
+        console.error(
+          `Failed to fetch agents for channel ${channelId}:`,
+          error,
+        );
+        throw error;
+      }
+    },
+    async createAgent({ state, commit }, { chatId, agentData }) {
+      try {
+        const response = await network(
+          this,
+          "post",
+          `/chats/${chatId}/agents`,
+          agentData,
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+        const agent = response.data;
+        commit("addAgent", { channelId: chatId, agent });
+        return agent;
+      } catch (error) {
+        console.error("Failed to create agent:", error);
+        throw error;
+      }
+    },
+    async deleteAgent({ state, commit }, { chatId, agentId }) {
+      try {
+        await network(
+          this,
+          "delete",
+          `/chats/${chatId}/agents/${agentId}`,
+          null,
+          {
+            Authorization: `Bearer ${state.token}`,
+          },
+        );
+        commit("removeAgent", { channelId: chatId, agentId });
+      } catch (error) {
+        console.error("Failed to delete agent:", error);
+        throw error;
+      }
+    },
   },
   getters: {
     isAuthenticated(state) {
@@ -521,6 +620,15 @@ export default createStore({
         return [];
       }
       return state.messages[state.activeChannel.id] || [];
+    },
+    getAgentsForChannel: (state) => (channelId) => {
+      return state.agents[channelId] || [];
+    },
+    getAgentsForActiveChannel(state) {
+      if (!state.activeChannel) {
+        return [];
+      }
+      return state.agents[state.activeChannel.id] || [];
     },
   },
 });

@@ -1,5 +1,6 @@
 use crate::{
     AppError, AppState,
+    error::ErrorOutput,
     models::{CreateAgent, UpdateAgent},
 };
 use axum::{
@@ -76,4 +77,29 @@ pub(crate) async fn update_agent_handler(
 ) -> Result<impl IntoResponse, AppError> {
     let agent = state.update_agent(input, chat_id as _).await?;
     Ok((StatusCode::OK, Json(agent)).into_response())
+}
+
+/// Delete an agent from the chat
+#[utoipa::path(
+    delete,
+    path = "/api/chats/{chat_id}/agents/{agent_id}",
+    params(
+        ("chat_id" = u64, Path, description = "Chat id"),
+        ("agent_id" = u64, Path, description = "Agent id")
+    ),
+    responses(
+        (status = 200, description = "Agent deleted successfully"),
+        (status = 400, description = "Invalid input", body = ErrorOutput),
+        (status = 404, description = "Agent not found", body = ErrorOutput),
+    ),
+    security(
+        ("token"=[])
+    )
+)]
+pub(crate) async fn delete_agent_handler(
+    Path((chat_id, agent_id)): Path<(u64, u64)>,
+    State(state): State<AppState>,
+) -> Result<impl IntoResponse, AppError> {
+    state.delete_agent(chat_id, agent_id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }

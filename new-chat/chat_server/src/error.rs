@@ -29,8 +29,14 @@ pub enum AppError {
     #[error("update agent error: {0}")]
     UpdateAgentError(String),
 
+    #[error("delete agent error: {0}")]
+    DeleteAgentError(String),
+
     #[error("create message error: {0}")]
     CreateMessageError(String),
+
+    #[error("delete message error: {0}")]
+    DeleteMessageError(String),
 
     #[error("not logged in")]
     NotLoggedInError,
@@ -71,7 +77,9 @@ impl IntoResponse for AppError {
             | Self::CreateMessageError(_)
             | Self::ChatFileError(_)
             | Self::CreateAgentError(_)
-            | Self::UpdateAgentError(_) => StatusCode::BAD_REQUEST,
+            | Self::UpdateAgentError(_)
+            | Self::DeleteAgentError(_)
+            | Self::DeleteMessageError(_) => StatusCode::BAD_REQUEST,
             Self::NotChatMemberError { .. } => StatusCode::FORBIDDEN,
             Self::NotFound(_) => StatusCode::NOT_FOUND,
             Self::IoError(_) => StatusCode::INTERNAL_SERVER_ERROR,

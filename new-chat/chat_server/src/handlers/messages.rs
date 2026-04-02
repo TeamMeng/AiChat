@@ -65,6 +65,32 @@ pub(crate) async fn list_message_handler(
     Ok(Json(messages))
 }
 
+/// Delete a message in the chat.
+#[utoipa::path(
+    delete,
+    path = "/api/chats/{chat_id}/messages/{message_id}",
+    params(
+        ("chat_id" = u64, Path, description = "Chat id"),
+        ("message_id" = u64, Path, description = "Message id")
+    ),
+    responses(
+        (status = 200, description = "Message deleted successfully"),
+        (status = 400, description = "Invalid input", body = ErrorOutput),
+        (status = 403, description = "Not authorized to delete this message", body = ErrorOutput),
+    ),
+    security(
+        ("token" = [])
+    )
+)]
+pub(crate) async fn delete_message_handler(
+    Extension(user): Extension<User>,
+    State(state): State<AppState>,
+    Path((chat_id, message_id)): Path<(u64, u64)>,
+) -> Result<impl IntoResponse, AppError> {
+    state.delete_message(chat_id, message_id, user.id as _).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub(crate) async fn file_handler(
     Extension(user): Extension<User>,
     State(state): State<AppState>,
