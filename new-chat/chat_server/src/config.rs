@@ -34,6 +34,6 @@ impl AppConfig {
             (_, _, Ok(path)) => serde_yaml::from_reader(File::open(path)?),
             _ => bail!("Chat config file not found"),
         };
-        Ok(ret)
+        Ok(ret?)
     }
 }
