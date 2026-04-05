@@ -87,6 +87,43 @@ cargo audit 是一个 Rust 检查已知的漏洞安全和依赖安全的工具
 cargo install cargo-audit
 ```
 
+## 功能特性
+
+### Redis 连接池
+
+使用 `deadpool_redis` 实现 Redis 连接池，提高 Redis 访问性能。
+
+配置项（`chat.yaml`）：
+
+```yaml
+redis:
+  url: redis://localhost:6379
+  pool_size: 16
+```
+
+### 登录限流
+
+基于滑动窗口算法的登录限流中间件，支持三层防护：
+
+| 限流维度 | 默认值 | 说明 |
+|---------|--------|------|
+| IP + Email | 3 次/分钟 | 最严格，针对同一 IP 尝试不同邮箱 |
+| Email | 5 次/分钟 | 防止邮箱被暴力破解 |
+| IP | 10 次/分钟 | 防止 IP 被封禁前的大量尝试 |
+
+配置项（`chat.yaml`）：
+
+```yaml
+rate_limit:
+  signin:
+    max_attempts_ip: 10
+    max_attempts_email: 5
+    max_attempts_ip_email: 3
+    window_secs: 60
+```
+
+限流中间件自动从请求头提取客户端 IP（优先 X-Forwarded-For → X-Real-IP → Host）。
+
 ## 测试与 CI
 
 ### 运行测试

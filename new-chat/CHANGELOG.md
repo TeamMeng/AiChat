@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file. See [conven
 ---
 ## [unreleased]
 
+### Features
+
+- add Redis connection pool and sign-in rate limiting ([11809cf](https://github.com/TeamMeng/AiChat/commit/11809cf4c2a7d4a4564a9d8b53100b80b3268fbb))
+
 ### Miscellaneous Chores
 
 - initialize basic structure for the repo - ([2436bec](https://github.com/tyrchen/qdrant-lib/commit/2436bec4a02caac64f6c1f97ca79b6ce745b4f53))
