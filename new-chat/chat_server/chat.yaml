@@ -11,3 +11,12 @@ auth:
     -----BEGIN PUBLIC KEY-----
     MCowBQYDK2VwAyEAxQ5CiwB5fGjLWB88ou/FombM8UBqvVXEITrJogylqcY=
     -----END PUBLIC KEY-----
+redis:
+  url: redis://localhost:6379
+  pool_size: 16
+rate_limit:
+  signin:
+    max_attempts_ip: 10
+    max_attempts_email: 5
+    max_attempts_ip_email: 3
+    window_secs: 60

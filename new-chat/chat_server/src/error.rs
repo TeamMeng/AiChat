@@ -61,6 +61,18 @@ pub enum AppError {
 
     #[error("ai agent error: {0}")]
     AiAgentError(#[from] AgentError),
+
+    #[error("rate limit exceeded: {0}")]
+    RateLimitExceeded(String),
+
+    #[error("redis error: {0}")]
+    RedisError(#[from] deadpool_redis::PoolError),
+
+    #[error("redis build error: {0}")]
+    RedisBuildError(String),
+
+    #[error("axum error: {0}")]
+    AxumError(#[from] axum::Error),
 }
 
 impl ErrorOutput {
@@ -89,6 +101,10 @@ impl IntoResponse for AppError {
             Self::HttpHeaderError(_) => StatusCode::UNPROCESSABLE_ENTITY,
             Self::AiAgentError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::NotLoggedInError => StatusCode::UNAUTHORIZED,
+            Self::RateLimitExceeded(_) => StatusCode::TOO_MANY_REQUESTS,
+            Self::RedisError(_) | Self::RedisBuildError(_) | Self::AxumError(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         };
 
         (status, Json(ErrorOutput::new(self.to_string()))).into_response()

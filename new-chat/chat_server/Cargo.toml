@@ -18,10 +18,13 @@ axum = { workspace = true }
 axum-extra = { workspace = true }
 chat_core = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
+deadpool-redis = "0.17"
 hex = "0.4.3"
 http-body-util = { version = "0.1.2", optional = true }
+http-body = { workspace = true }
 jwt-simple = { workspace = true }
 mime_guess = "2.0.5"
+redis = { version = "0.26", features = ["tokio-comp", "connection-manager", "script"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }

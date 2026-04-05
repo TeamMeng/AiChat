@@ -5,8 +5,15 @@ mod handlers;
 mod middlewares;
 mod models;
 mod openapi;
+mod redis;
 
-use crate::{handlers::*, middlewares::verify_chat, openapi::OpenApiRouter};
+use crate::{
+    config::SigninRateLimit,
+    handlers::*,
+    middlewares::{rate_limit_signin, verify_chat},
+    openapi::OpenApiRouter,
+    redis::RedisPool,
+};
 use anyhow::Context;
 use axum::{
     Router,
@@ -31,11 +38,27 @@ pub struct AppState {
     inner: Arc<AppStateInner>,
 }
 
+/// Rate limit state for signin endpoint
+#[derive(Clone)]
+pub struct RateLimitState {
+    pub config: SigninRateLimit,
+    pub redis: RedisPool,
+}
+
+impl RateLimitState {
+    pub fn new(config: SigninRateLimit, redis: RedisPool) -> Self {
+        Self { config, redis }
+    }
+}
+
 pub struct AppStateInner {
     pub(crate) config: AppConfig,
     pub(crate) ek: EncodingKey,
     pub(crate) dk: DecodingKey,
     pub(crate) pool: PgPool,
+    #[allow(dead_code)]
+    pub(crate) redis: Option<RedisPool>,
+    pub(crate) rate_limit_state: Option<RateLimitState>,
 }
 
 pub async fn get_router(state: AppState) -> Result<Router, AppError> {
@@ -81,6 +104,14 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
         .allow_headers(Any)
         .allow_origin(Any);
 
+    // Build the signin route with optional rate limiting
+    let signin_route = post(signin_handler);
+    let signin_route = if state.rate_limit_state.is_some() {
+        signin_route.layer(from_fn_with_state(state.inner.clone(), rate_limit_signin))
+    } else {
+        signin_route
+    };
+
     let api = Router::new()
         .route("/users", get(list_chat_users_handler))
         .nest("/chats", chat)
@@ -98,7 +129,7 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
         .route("/workspaces/join", post(join_workspace_handler))
         .layer(from_fn_with_state(state.clone(), verify_token::<AppState>))
         // routes doesn't need token verification
-        .route("/signin", post(signin_handler))
+        .route("/signin", signin_route)
         .route("/signup", post(signup_handler))
         .layer(cors);
 
@@ -110,7 +141,7 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
 impl Deref for AppState {
     type Target = AppStateInner;
 
-    fn deref(&self) -> &Self::Target {
+    fn deref(&self) -> &AppStateInner {
         &self.inner
     }
 }
@@ -123,12 +154,32 @@ impl AppState {
         let pool = PgPool::connect(&config.server.db_url).await?;
         let ek = EncodingKey::load(&config.auth.sk).context("load pk failed")?;
         let dk = DecodingKey::load(&config.auth.pk).context("load sk failed")?;
+
+        // Initialize Redis if configured
+        let redis = if let Some(ref redis_config) = config.redis {
+            Some(RedisPool::new(redis_config).await?)
+        } else {
+            tracing::warn!("Redis not configured, rate limiting disabled");
+            None
+        };
+
+        // Initialize rate limit state if Redis and config are available
+        let rate_limit_state = match (&redis, &config.rate_limit) {
+            (Some(redis), Some(rate_limit_config)) => Some(RateLimitState::new(
+                rate_limit_config.signin.clone(),
+                redis.clone(),
+            )),
+            _ => None,
+        };
+
         Ok(Self {
             inner: Arc::new(AppStateInner {
                 config,
                 ek,
                 dk,
                 pool,
+                redis,
+                rate_limit_state,
             }),
         })
     }
@@ -167,12 +218,29 @@ mod test_util {
 
             let (tdb, pool) = get_test_pool(Some(server_url)).await;
 
+            // For tests, Redis is optional - skip if not configured
+            let redis = if let Some(ref redis_config) = config.redis {
+                Some(RedisPool::new(redis_config).await?)
+            } else {
+                None
+            };
+
+            let rate_limit_state = match (&redis, &config.rate_limit) {
+                (Some(redis), Some(rate_limit_config)) => Some(RateLimitState::new(
+                    rate_limit_config.signin.clone(),
+                    redis.clone(),
+                )),
+                _ => None,
+            };
+
             let state = Self {
                 inner: Arc::new(AppStateInner {
                     config,
                     ek,
                     dk,
                     pool,
+                    redis,
+                    rate_limit_state,
                 }),
             };
             Ok((tdb, state))
@@ -188,7 +256,7 @@ mod test_util {
         let pool = tdb.get_pool().await;
 
         // run prepared sql to insert test data
-        let sql = include_str!("../fixtures/test.sql").split(";");
+        let sql = include_str!("../fixtures/test.sql").split(';');
         let mut ts = pool.begin().await.expect("begin transaction failed");
         for s in sql {
             if s.trim().is_empty() {
