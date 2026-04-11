@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-0f7440941352aca0/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-11037af0e8b22b46/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-17a2fce98076af00/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-1dab949ff3b68a73/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-1f0c6add7c9dc214/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-247f0d0bc72726cb/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-412a688803d4dc13/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-4c0cb780321f7119/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-4dc142236456388e/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-51e3f811bc7bbb8a/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-52a39c90703ba0a2/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-6977753f06bd871a/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-6af8897dd6c91227/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-85a9c07d0b9dee38/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-86338c2689f6a042/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-a36ccd019f9d3cb7/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-b9370444a5d15b2c/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-bbf2921ea6278b97/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-c1a3eeb7f50f1da9/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-cd0ca3e3d1a018dc/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-cf60d4e5822307f4/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-eca085fb048cad45/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-f151f7a8a5167b4c/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-f52efd6b5f772e2e/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/debug/build/boring-sys-ff6793a0d80faf88/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/release/build/boring-sys-d7561b947b89f641/out/boringssl" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/new-chat/target/release/build/boring-sys-f211bb706758c298/out/boringssl" vcs="Git" />
+  </component>
+</project>

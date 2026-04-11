@@ -39,8 +39,10 @@ pub struct TestAgent;
 
 impl Agent for ProxyAgent {
     async fn process(&self, msg: &str, _ctx: &AgentContext) -> Result<AgentDecision, AgentError> {
-        let prompt = format!("{} {}", self.prompt, msg);
-        let messages = vec![ai_sdk::Message::user(prompt)];
+        let messages = vec![
+            ai_sdk::Message::system(self.prompt.clone()),
+            ai_sdk::Message::user(msg),
+        ];
         let res = self.adapter.complete(&messages).await?;
         Ok(AgentDecision::Modify(res))
     }
@@ -48,8 +50,10 @@ impl Agent for ProxyAgent {
 
 impl Agent for ReplyAgent {
     async fn process(&self, msg: &str, _ctx: &AgentContext) -> Result<AgentDecision, AgentError> {
-        let prompt = format!("{} {}", self.prompt, msg);
-        let messages = vec![ai_sdk::Message::user(prompt)];
+        let messages = vec![
+            ai_sdk::Message::system(self.prompt.clone()),
+            ai_sdk::Message::user(msg),
+        ];
         let res = self.adapter.complete(&messages).await?;
         Ok(AgentDecision::Reply(res))
     }

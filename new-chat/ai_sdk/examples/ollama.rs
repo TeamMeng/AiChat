@@ -1,13 +1,11 @@
-use ai_sdk::{AiService, Message, OllamaAdapter, Role};
+use ai_sdk::{AiService, Message, OllamaAdapter};
 use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let adapter = OllamaAdapter::default();
-    let message = vec![Message {
-        role: crate::Role::User,
-        content: "Hello".to_string(),
-    }];
+    // 这里对应 chat_server 当前常见的单轮调用方式。
+    let message = vec![Message::user("Hello")];
     let response = adapter.complete(&message).await?;
     println!("response: {}", response);
     Ok(())
