@@ -6,7 +6,7 @@ license = "MIT"
 
 [dependencies]
 anyhow = { workspace = true }
-reqwest = { version = "0.13.1", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.13.1", default-features = false, features = ["json", "rustls"] }
 serde = { workspace = true }
 
 [dev-dependencies]
