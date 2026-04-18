@@ -39,7 +39,7 @@ pub struct OllamaChatCompletionResponse {
 impl OllamaAdapter {
     pub fn new(host: impl Into<String>, model: impl Into<String>) -> Self {
         let client = Client::builder()
-            .tls_backend_native()
+            .tls_backend_rustls()
             .no_proxy()
             .build()
             .expect("failed to build Ollama HTTP client");
