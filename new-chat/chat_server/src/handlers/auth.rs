@@ -9,8 +9,22 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, ToSchema, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuthOutput {
-    token: String,
+    access_token: String,
+    refresh_token: String,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshInput {
+    refresh_token: String,
+}
+
+#[derive(Debug, Serialize, ToSchema, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshOutput {
+    access_token: String,
 }
 
 #[utoipa::path(
@@ -23,15 +37,14 @@ pub struct AuthOutput {
 /// Create a new user in the chat system with email, password, workspace, and fullname.
 ///
 /// - If the email already exists, it will return 409.
-/// - Otherwise, it will return 201 with a token.
+/// - Otherwise, it will return 201 with access and refresh tokens.
 /// - If the workspace doesn't exist, it will create one.
 pub(crate) async fn signup_handler(
     State(state): State<AppState>,
     Json(input): Json<CreateUser>,
 ) -> Result<impl IntoResponse, AppError> {
     let user = state.create_user(&input).await?;
-    let token = state.ek.sign(user)?;
-    let body = Json(AuthOutput::new(&token));
+    let body = Json(AuthOutput::from_user(&state, user)?);
     Ok((StatusCode::CREATED, body))
 }
 
@@ -51,8 +64,7 @@ pub(crate) async fn signin_handler(
     let user = state.verify_user(&input).await?;
     match user {
         Some(user) => {
-            let token = state.ek.sign(user)?;
-            let body = Json(AuthOutput::new(&token));
+            let body = Json(AuthOutput::from_user(&state, user)?);
             Ok((StatusCode::OK, body).into_response())
         }
         None => {
@@ -60,6 +72,28 @@ pub(crate) async fn signin_handler(
             Ok((StatusCode::FORBIDDEN, body).into_response())
         }
     }
+}
+
+/// Refresh an access token with a refresh token.
+#[utoipa::path(
+    post,
+    path = "/api/refresh",
+    request_body = RefreshInput,
+    responses(
+        (status = 200, description = "Access token refreshed", body = RefreshOutput)
+    )
+)]
+pub(crate) async fn refresh_handler(
+    State(state): State<AppState>,
+    Json(input): Json<RefreshInput>,
+) -> Result<impl IntoResponse, AppError> {
+    let user = state
+        .dk
+        .verify_refresh(&input.refresh_token)
+        .map_err(|_| AppError::NotLoggedInError)?;
+    let access_token = state.ek.sign_access(user)?;
+
+    Ok((StatusCode::OK, Json(RefreshOutput::new(&access_token))))
 }
 
 /// Change user password
@@ -84,9 +118,24 @@ pub(crate) async fn change_password_handler(
 }
 
 impl AuthOutput {
-    pub fn new(token: &str) -> Self {
+    pub fn new(access_token: &str, refresh_token: &str) -> Self {
         Self {
-            token: token.to_string(),
+            access_token: access_token.to_string(),
+            refresh_token: refresh_token.to_string(),
+        }
+    }
+
+    pub fn from_user(state: &AppState, user: User) -> Result<Self, AppError> {
+        let access_token = state.ek.sign_access(user.clone())?;
+        let refresh_token = state.ek.sign_refresh(user)?;
+        Ok(Self::new(&access_token, &refresh_token))
+    }
+}
+
+impl RefreshOutput {
+    pub fn new(access_token: &str) -> Self {
+        Self {
+            access_token: access_token.to_string(),
         }
     }
 }
@@ -115,7 +164,8 @@ mod tests {
 
         let body = ret.into_body().collect().await?.to_bytes();
         let ret: AuthOutput = serde_json::from_slice(&body)?;
-        assert_ne!(ret.token, "");
+        assert_ne!(ret.access_token, "");
+        assert_ne!(ret.refresh_token, "");
 
         Ok(())
     }
@@ -159,7 +209,8 @@ mod tests {
 
         let body = ret.into_body().collect().await?.to_bytes();
         let ret: AuthOutput = serde_json::from_slice(&body)?;
-        assert_ne!(ret.token, "");
+        assert_ne!(ret.access_token, "");
+        assert_ne!(ret.refresh_token, "");
 
         Ok(())
     }
@@ -203,7 +254,7 @@ mod tests {
 
         let body = signin_response.into_body().collect().await?.to_bytes();
         let auth_output: AuthOutput = serde_json::from_slice(&body)?;
-        let user = state.dk.verify(&auth_output.token)?;
+        let user = state.dk.verify_access(&auth_output.access_token)?;
 
         // Change password
         let change_input = ChangePasswordInput {
@@ -233,6 +284,39 @@ mod tests {
             .into_response();
 
         assert_eq!(ret.status(), StatusCode::OK);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn refresh_handler_should_work() -> Result<()> {
+        let (_tdb, state) = AppState::new_for_test().await?;
+
+        let email = "Test@123.com";
+        let password = "123456";
+
+        let input = SigninUser::new(email, password);
+        let ret = signin_handler(State(state.clone()), Json(input))
+            .await?
+            .into_response();
+
+        assert_eq!(ret.status(), StatusCode::OK);
+
+        let body = ret.into_body().collect().await?.to_bytes();
+        let auth_output: AuthOutput = serde_json::from_slice(&body)?;
+
+        let input = RefreshInput {
+            refresh_token: auth_output.refresh_token,
+        };
+        let ret = refresh_handler(State(state), Json(input))
+            .await?
+            .into_response();
+
+        assert_eq!(ret.status(), StatusCode::OK);
+
+        let body = ret.into_body().collect().await?.to_bytes();
+        let refresh_output: RefreshOutput = serde_json::from_slice(&body)?;
+        assert_ne!(refresh_output.access_token, "");
 
         Ok(())
     }

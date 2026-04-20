@@ -72,7 +72,7 @@ impl TokenVerify for AppState {
     type Error = AppError;
 
     fn verify(&self, token: &str) -> Result<User, Self::Error> {
-        Ok(self.dk.verify(token)?)
+        Ok(self.dk.verify_access(token)?)
     }
 }
 

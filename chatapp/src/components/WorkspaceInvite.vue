@@ -163,6 +163,7 @@
 
 <script>
 import axios from 'axios';
+import { jwtDecode } from "jwt-decode";
 
 export default {
   name: 'WorkspaceInvite',
@@ -185,7 +186,7 @@ export default {
     async loadInvitations() {
       this.loading = true;
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const response = await axios.get('http://localhost:6688/api/workspaces/invitations', {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -198,7 +199,7 @@ export default {
     },
     async createInvitation() {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const payload = {};
         if (this.newInvite.expires_in_days) {
           payload.expires_in_days = this.newInvite.expires_in_days;
@@ -219,7 +220,7 @@ export default {
     },
     async deactivateInvitation(id) {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         await axios.delete(`http://localhost:6688/api/workspaces/invitations/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -235,14 +236,23 @@ export default {
       }
 
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('accessToken');
         const response = await axios.post(
           'http://localhost:6688/api/workspaces/join',
           { invite_code: this.joinCode.trim() },
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        localStorage.setItem('token', response.data.token);
+        const accessToken = response.data.accessToken;
+        const refreshToken = response.data.refreshToken;
+        const user = jwtDecode(accessToken);
+        const workspace = { id: user.wsId, name: user.wsName };
+
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        localStorage.removeItem('token');
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('workspace', JSON.stringify(workspace));
         this.joinCode = '';
         window.location.reload();
       } catch (error) {

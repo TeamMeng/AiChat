@@ -13,8 +13,9 @@ use tokio::{net::TcpListener, time::sleep};
 const WILD_ADDR: &str = "127.0.0.1:0";
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct AuthToken {
-    token: String,
+    access_token: String,
 }
 
 struct NotifyServer;
@@ -165,7 +166,7 @@ impl ChatServer {
 
         assert_eq!(res.status(), StatusCode::OK);
         let ret: AuthToken = res.json().await?;
-        Ok(ret.token)
+        Ok(ret.access_token)
     }
 
     async fn create_chat(&self) -> Result<Chat> {

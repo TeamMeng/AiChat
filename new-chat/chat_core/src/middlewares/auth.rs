@@ -112,7 +112,7 @@ mod tests {
         type Error = ();
 
         fn verify(&self, token: &str) -> std::result::Result<User, Self::Error> {
-            self.0.dk.verify(token).map_err(|_| ())
+            self.0.dk.verify_access(token).map_err(|_| ())
         }
     }
 
@@ -129,7 +129,7 @@ mod tests {
         let state = AppState(Arc::new(AppStateInner { ek, dk }));
 
         let user = User::new(1, "TeamMeng", "TeamMeng@123.com");
-        let token = state.0.ek.sign(user)?;
+        let token = state.0.ek.sign_access(user)?;
 
         let app = Router::new()
             .route("/", get(handler))

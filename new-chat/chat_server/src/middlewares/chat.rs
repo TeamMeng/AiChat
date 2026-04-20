@@ -68,7 +68,7 @@ mod tests {
             .find_user_by_id(1)
             .await?
             .expect("user id: 1 should exists");
-        let token = state.ek.sign(user)?;
+        let token = state.ek.sign_access(user)?;
 
         let app = Router::new()
             .route("/chat/{id}/messages", get(handler))

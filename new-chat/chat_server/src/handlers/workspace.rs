@@ -86,18 +86,20 @@ pub(crate) async fn join_workspace_handler(
         .join_workspace_with_invitation(user.id as _, &input.invite_code)
         .await?;
 
-    // Generate new token with updated workspace
+    // Generate new tokens with updated workspace claims.
     let mut updated_user = user.clone();
     updated_user.ws_id = workspace.id;
     updated_user.ws_name = workspace.name.clone();
-    let token = state.ek.sign(updated_user)?;
+    let access_token = state.ek.sign_access(updated_user.clone())?;
+    let refresh_token = state.ek.sign_refresh(updated_user)?;
 
     Ok((
         StatusCode::OK,
         Json(serde_json::json!({
             "message": "Successfully joined workspace",
             "workspace": workspace,
-            "token": token
+            "accessToken": access_token,
+            "refreshToken": refresh_token
         })),
     )
         .into_response())

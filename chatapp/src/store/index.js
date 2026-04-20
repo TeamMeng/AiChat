@@ -18,8 +18,9 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import packageJson from "../../package.json";
 
-// Wrap axios calls in a function that handles 403 errors
+// Wrap axios calls in a function that refreshes expired access tokens.
 const network = async (store, method, url, data = null, headers = {}) => {
+  const isAuthEndpoint = ["/signin", "/signup", "/refresh"].includes(url);
   try {
     const config = {
       method,
@@ -30,7 +31,29 @@ const network = async (store, method, url, data = null, headers = {}) => {
     const response = await axios(config);
     return response;
   } catch (error) {
-    if (error.response && error.response.status === 403) {
+    const status = error.response?.status;
+    if ((status === 401 || status === 403) && !isAuthEndpoint) {
+      try {
+        const token = await store.dispatch("refreshAccessToken");
+        const retryHeaders = { ...headers };
+        if (retryHeaders.Authorization) {
+          retryHeaders.Authorization = `Bearer ${token}`;
+        }
+        return await axios({
+          method,
+          url: `${getUrlBase()}${url}`,
+          headers: retryHeaders,
+          data,
+        });
+      } catch (refreshError) {
+        console.error("Token refresh failed, logging out", refreshError);
+        await store.dispatch("logout");
+        window.location.href = "/login";
+        return;
+      }
+    }
+
+    if (status === 403 && isAuthEndpoint) {
       console.error("Unauthorized access, logging out");
       await store.dispatch("logout");
       // TODO: client side redirect to login page (can we use router instead?)
@@ -45,7 +68,8 @@ export default createStore({
   state: {
     context: {}, // Context for analytics events
     user: null, // User information
-    token: null, // Authentication token
+    token: null, // Access token
+    refreshToken: null, // Refresh token
     workspace: {}, // Current workspace
     channels: [], // List of channels
     messages: {}, // Messages hashmap, keyed by channel ID
@@ -63,6 +87,9 @@ export default createStore({
     },
     setToken(state, token) {
       state.token = token;
+    },
+    setRefreshToken(state, token) {
+      state.refreshToken = token;
     },
     setWorkspace(state, workspace) {
       state.workspace = workspace;
@@ -121,7 +148,8 @@ export default createStore({
       console.log("context:", state.context);
 
       const storedUser = localStorage.getItem("user");
-      const storedToken = localStorage.getItem("token");
+      const storedToken = localStorage.getItem("accessToken") || localStorage.getItem("token");
+      const storedRefreshToken = localStorage.getItem("refreshToken");
       const storedWorkspace = localStorage.getItem("workspace");
       const storedChannels = localStorage.getItem("channels");
       // we do not store messages in local storage, so this is always empty
@@ -134,6 +162,9 @@ export default createStore({
       }
       if (storedToken) {
         state.token = storedToken;
+      }
+      if (storedRefreshToken) {
+        state.refreshToken = storedRefreshToken;
       }
       if (storedWorkspace) {
         state.workspace = JSON.parse(storedWorkspace);
@@ -202,6 +233,8 @@ export default createStore({
     logout({ commit }) {
       // Clear local storage and state
       localStorage.removeItem("user");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("token");
       localStorage.removeItem("workspace");
       localStorage.removeItem("channels");
@@ -209,11 +242,27 @@ export default createStore({
 
       commit("setUser", null);
       commit("setToken", null);
+      commit("setRefreshToken", null);
       commit("setWorkspace", "");
       commit("setChannels", []);
 
       // close SSE
       this.dispatch("closeSSE");
+    },
+    async refreshAccessToken({ state, commit }) {
+      if (!state.refreshToken) {
+        throw new Error("No refresh token available");
+      }
+
+      const response = await axios.post(`${getUrlBase()}/refresh`, {
+        refreshToken: state.refreshToken,
+      });
+
+      const token = response.data.accessToken;
+      localStorage.setItem("accessToken", token);
+      commit("setToken", token);
+
+      return token;
     },
     setActiveChannel({ commit }, channel) {
       commit("setActiveChannel", channel);
@@ -634,7 +683,8 @@ export default createStore({
 });
 
 async function loadState(response, self, commit) {
-  const token = response.data.token;
+  const token = response.data.accessToken;
+  const refreshToken = response.data.refreshToken;
   const user = jwtDecode(token);
   const workspace = { id: user.wsId, name: user.wsName };
 
@@ -655,9 +705,11 @@ async function loadState(response, self, commit) {
     });
     const channels = chatsResp.data;
 
-    // Store user info, token, and workspace in localStorage
+    // Store user info, tokens, and workspace in localStorage
     localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("token", token);
+    localStorage.setItem("accessToken", token);
+    localStorage.setItem("refreshToken", refreshToken);
+    localStorage.removeItem("token");
     localStorage.setItem("workspace", JSON.stringify(workspace));
     localStorage.setItem("users", JSON.stringify(usersMap));
     localStorage.setItem("channels", JSON.stringify(channels));
@@ -665,6 +717,7 @@ async function loadState(response, self, commit) {
     // Commit the mutations to update the state
     commit("setUser", user);
     commit("setToken", token);
+    commit("setRefreshToken", refreshToken);
     commit("setWorkspace", workspace);
     commit("setChannels", channels);
     commit("setUsers", usersMap);

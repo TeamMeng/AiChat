@@ -131,6 +131,7 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
         // routes doesn't need token verification
         .route("/signin", signin_route)
         .route("/signup", post(signup_handler))
+        .route("/refresh", post(refresh_handler))
         .layer(cors);
 
     let app = Router::new().openapi().nest("/api", api).with_state(state);
@@ -197,7 +198,7 @@ impl TokenVerify for AppState {
     type Error = AppError;
 
     fn verify(&self, token: &str) -> Result<User, Self::Error> {
-        Ok(self.dk.verify(token)?)
+        Ok(self.dk.verify_access(token)?)
     }
 }
 

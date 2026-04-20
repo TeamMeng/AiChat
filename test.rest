@@ -50,7 +50,8 @@ Content-Type: application/json
     "password": "123456"
 }
 ### Set token variable
-@token = {{signin.response.body.token}}
+@token = {{signin.response.body.accessToken}}
+@refreshToken = {{signin.response.body.refreshToken}}
 
 ### signin user (valid)
 # @name signin1
@@ -62,7 +63,16 @@ Content-Type: application/json
     "password": "123456"
 }
 ### Set token variable
-@token1 = {{signin1.response.body.token}}
+@token1 = {{signin1.response.body.accessToken}}
+@refreshToken1 = {{signin1.response.body.refreshToken}}
+
+### refresh access token
+POST http://localhost:6688/api/refresh
+Content-Type: application/json
+
+{
+    "refreshToken": "{{refreshToken}}"
+}
 
 ### create chat
 POST http://localhost:6688/api/chats
