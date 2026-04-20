@@ -756,7 +756,7 @@ dependencies = [
  "http-body-util",
  "jwt-simple",
  "mime_guess",
- "redis",
+ "redis 0.26.1",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -1280,7 +1280,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e081657a45476ddeefff90d0beb55446a50a77eb76b37387fbd6dd8f8e6210d"
 dependencies = [
  "deadpool",
- "redis",
+ "redis 0.26.1",
 ]
 
 [[package]]
@@ -3095,6 +3095,7 @@ dependencies = [
  "dashmap",
  "futures-util",
  "jwt-simple",
+ "redis 0.27.6",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -4121,6 +4122,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "redis"
+version = "0.27.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "09d8f99a4090c89cc489a94833c901ead69bfbf3877b4867d5482e321ee875bc"
+dependencies = [
+ "arc-swap",
+ "async-trait",
+ "bytes",
+ "combine",
+ "futures-util",
+ "itertools 0.13.0",
+ "itoa",
+ "num-bigint",
+ "percent-encoding",
+ "pin-project-lite",
+ "ryu",
+ "sha1_smol",
+ "socket2 0.5.10",
+ "tokio",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4426,7 +4451,7 @@ dependencies = [
  "security-framework 3.5.1",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

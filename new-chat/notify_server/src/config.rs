@@ -6,6 +6,12 @@ use std::{env, fs::File};
 pub struct AppConfig {
     pub server: ServerConfig,
     pub auth: AuthConfig,
+    pub redis: RedisConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RedisConfig {
+    pub url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

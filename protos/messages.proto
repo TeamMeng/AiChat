@@ -21,8 +21,7 @@ message AnalyticsEvent {
 }
 
 /// 应用启动事件
-message AppStartEvent {
-}
+message AppStartEvent {}
 
 /// 应用退出事件
 message AppExitEvent {

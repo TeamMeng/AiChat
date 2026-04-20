@@ -23,7 +23,7 @@ use tower_http::cors::{Any, CorsLayer};
 
 pub use config::AppConfig;
 pub use error::AppError;
-pub use notif::{AppEvent, setup_pg_listener};
+pub use notif::{AppEvent, setup_pg_listener, setup_redis_subscriber};
 
 pub type UserMap = Arc<DashMap<u64, broadcast::Sender<Arc<AppEvent>>>>;
 
@@ -53,6 +53,7 @@ pub async fn get_router(config: AppConfig) -> Result<Router> {
     let state = AppState::new(config);
 
     setup_pg_listener(state.clone()).await?;
+    setup_redis_subscriber(state.clone()).await?;
 
     let app = Router::new()
         .route("/events", get(sse_handler))

@@ -2,6 +2,7 @@ use crate::AppState;
 use anyhow::Result;
 use chat_core::{Chat, Message};
 use futures_util::StreamExt;
+use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgListener;
 use std::{collections::HashSet, sync::Arc};
@@ -87,6 +88,16 @@ struct WorkspaceInfo {
     name: String,
 }
 
+// Message format published to Redis
+#[derive(Debug, Serialize, Deserialize)]
+struct RedisNotifMessage {
+    channel: String,
+    payload: String,
+}
+
+const REDIS_NOTIFY_CHANNEL: &str = "notify_events";
+
+/// Listens to Postgres NOTIFY, deduplicates via Redis SET NX, then publishes to Redis Pub/Sub.
 pub async fn setup_pg_listener(state: AppState) -> Result<()> {
     let mut listener = PgListener::connect(&state.config.server.db_url).await?;
     listener.listen("chat_updated").await?;
@@ -95,26 +106,95 @@ pub async fn setup_pg_listener(state: AppState) -> Result<()> {
     listener.listen("workspace_updated").await?;
     listener.listen("user_joined_workspace").await?;
 
-    let mut stream = listener.into_stream();
+    let redis_url = state.config.redis.url.clone();
 
     tokio::spawn(async move {
-        while let Some(Ok(notif)) = stream.next().await {
-            info!("Received notification: {:?}", notif);
+        if let Err(e) = run_pg_listener(listener, &redis_url).await {
+            tracing::error!("pg_listener exited with error: {}", e);
+        }
+    });
 
-            let notif = Notification::load(notif.channel(), notif.payload())?;
+    Ok(())
+}
 
-            let users = &state.users;
+async fn run_pg_listener(listener: PgListener, redis_url: &str) -> Result<()> {
+    let client = redis::Client::open(redis_url)?;
+    let mut conn = client.get_multiplexed_async_connection().await?;
+    let mut stream = listener.into_stream();
 
-            for user_id in notif.user_ids {
-                if let Some(tx) = users.get(&user_id)
-                    && let Err(e) = tx.send(notif.event.clone())
-                {
+    while let Some(Ok(notif)) = stream.next().await {
+        let channel = notif.channel().to_string();
+        let payload = notif.payload().to_string();
+
+        info!("Received pg notification: channel={}", channel);
+
+        // Atomic SET NX EX — only the first instance to set this key wins
+        let dedup_key = format!("notif:dedup:{}:{}", channel, payload);
+        let acquired: Option<String> = redis::cmd("SET")
+            .arg(&dedup_key)
+            .arg(1)
+            .arg("NX")
+            .arg("EX")
+            .arg(5)
+            .query_async(&mut conn)
+            .await?;
+
+        if acquired.is_some() {
+            let msg = serde_json::to_string(&RedisNotifMessage { channel, payload })?;
+            let _: i64 = conn.publish(REDIS_NOTIFY_CHANNEL, msg).await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Subscribes to Redis Pub/Sub and pushes events to locally connected users.
+pub async fn setup_redis_subscriber(state: AppState) -> Result<()> {
+    let redis_url = state.config.redis.url.clone();
+
+    tokio::spawn(async move {
+        if let Err(e) = run_redis_subscriber(state, &redis_url).await {
+            tracing::error!("redis_subscriber exited with error: {}", e);
+        }
+    });
+
+    Ok(())
+}
+
+async fn run_redis_subscriber(state: AppState, redis_url: &str) -> Result<()> {
+    let client = redis::Client::open(redis_url)?;
+    let mut pubsub = client.get_async_pubsub().await?;
+    pubsub.subscribe(REDIS_NOTIFY_CHANNEL).await?;
+    let mut stream = pubsub.into_on_message();
+
+    while let Some(msg) = stream.next().await {
+        let raw: String = msg.get_payload()?;
+        let redis_msg: RedisNotifMessage = match serde_json::from_str(&raw) {
+            Ok(m) => m,
+            Err(e) => {
+                warn!("failed to deserialize redis message: {}", e);
+                continue;
+            }
+        };
+
+        let notif = match Notification::load(&redis_msg.channel, &redis_msg.payload) {
+            Ok(n) => n,
+            Err(e) => {
+                warn!("failed to parse notification: {}", e);
+                continue;
+            }
+        };
+
+        let users = &state.users;
+        for user_id in notif.user_ids {
+            if let Some(tx) = users.get(&user_id) {
+                if let Err(e) = tx.send(notif.event.clone()) {
                     warn!("failed to send notif to user {}: {}", user_id, e);
                 }
             }
         }
-        Ok::<_, anyhow::Error>(())
-    });
+    }
+
     Ok(())
 }
 
@@ -211,17 +291,8 @@ fn get_affected_chat_user_ids(old: Option<&Chat>, new: Option<&Chat>) -> HashSet
                 old_user_ids.union(&new_user_ids).copied().collect()
             }
         }
-        (Some(old), None) => old
-            .members
-            .iter()
-            .map(|v| *v as u64)
-            .collect::<HashSet<_>>(),
-
-        (None, Some(new)) => new
-            .members
-            .iter()
-            .map(|v| *v as u64)
-            .collect::<HashSet<_>>(),
+        (Some(old), None) => old.members.iter().map(|v| *v as u64).collect::<HashSet<_>>(),
+        (None, Some(new)) => new.members.iter().map(|v| *v as u64).collect::<HashSet<_>>(),
         _ => HashSet::new(),
     }
 }

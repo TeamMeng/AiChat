@@ -14,6 +14,9 @@ pub enum AppError {
 
     #[error("jwt error: {0}")]
     JwtError(#[from] jwt_simple::Error),
+
+    #[error("redis error: {0}")]
+    RedisError(#[from] redis::RedisError),
 }
 
 impl ErrorOutput {
@@ -27,6 +30,7 @@ impl IntoResponse for AppError {
         let status = match &self {
             Self::IoError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::JwtError(_) => StatusCode::FORBIDDEN,
+            Self::RedisError(_) => StatusCode::INTERNAL_SERVER_ERROR,
         };
 
         (status, Json(ErrorOutput::new(self.to_string()))).into_response()
