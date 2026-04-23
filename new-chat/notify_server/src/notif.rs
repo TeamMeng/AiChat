@@ -291,8 +291,16 @@ fn get_affected_chat_user_ids(old: Option<&Chat>, new: Option<&Chat>) -> HashSet
                 old_user_ids.union(&new_user_ids).copied().collect()
             }
         }
-        (Some(old), None) => old.members.iter().map(|v| *v as u64).collect::<HashSet<_>>(),
-        (None, Some(new)) => new.members.iter().map(|v| *v as u64).collect::<HashSet<_>>(),
+        (Some(old), None) => old
+            .members
+            .iter()
+            .map(|v| *v as u64)
+            .collect::<HashSet<_>>(),
+        (None, Some(new)) => new
+            .members
+            .iter()
+            .map(|v| *v as u64)
+            .collect::<HashSet<_>>(),
         _ => HashSet::new(),
     }
 }
