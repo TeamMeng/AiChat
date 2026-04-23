@@ -187,10 +187,10 @@ async fn run_redis_subscriber(state: AppState, redis_url: &str) -> Result<()> {
 
         let users = &state.users;
         for user_id in notif.user_ids {
-            if let Some(tx) = users.get(&user_id) {
-                if let Err(e) = tx.send(notif.event.clone()) {
-                    warn!("failed to send notif to user {}: {}", user_id, e);
-                }
+            if let Some(tx) = users.get(&user_id)
+                && let Err(e) = tx.send(notif.event.clone())
+            {
+                warn!("failed to send notif to user {}: {}", user_id, e);
             }
         }
     }
