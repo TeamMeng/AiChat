@@ -59,6 +59,12 @@
 
         <!-- Chat Management Actions -->
         <div class="mt-4 pt-4 border-t border-[#45475a] space-y-2">
+            <div v-if="actionError" class="flex items-center gap-2 px-3 py-2 bg-[#f38ba8]/10 border border-[#f38ba8]/30 rounded-lg">
+                <svg class="w-4 h-4 text-[#f38ba8] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+                <span class="text-[#f38ba8] text-xs">{{ actionError }}</span>
+            </div>
             <button
                 @click="openRenameModal"
                 class="w-full flex items-center gap-2 px-3 py-2 text-[#cdd6f4] hover:bg-[#45475a] rounded-lg transition-colors duration-200"
@@ -152,6 +158,76 @@
             </div>
         </div>
 
+        <!-- Leave Group Confirm Modal -->
+        <div
+            v-if="showLeaveConfirm"
+            class="fixed inset-0 bg-[#11111b] bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm"
+            @click.self="showLeaveConfirm = false"
+        >
+            <div class="bg-gradient-to-br from-[#1e1e2e] to-[#181825] rounded-2xl p-6 w-[400px] border border-[#313244] shadow-2xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 bg-[#f9e2af]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-[#f9e2af]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-[#cdd6f4]">Leave Group</h3>
+                        <p class="text-sm text-[#9399b2] mt-1">Are you sure you want to leave <span class="text-[#cdd6f4] font-medium">{{ activeChannel?.name }}</span>?</p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button
+                        @click="showLeaveConfirm = false"
+                        class="px-4 py-2 bg-[#45475a] hover:bg-[#585b70] text-[#cdd6f4] rounded-lg transition-colors duration-200"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        @click="handleLeaveGroup"
+                        class="px-4 py-2 bg-[#f9e2af] hover:bg-[#f9e2af]/80 text-[#1e1e2e] font-medium rounded-lg transition-colors duration-200"
+                    >
+                        Leave
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Chat Confirm Modal -->
+        <div
+            v-if="showDeleteConfirm"
+            class="fixed inset-0 bg-[#11111b] bg-opacity-80 flex items-center justify-center z-50 backdrop-blur-sm"
+            @click.self="showDeleteConfirm = false"
+        >
+            <div class="bg-gradient-to-br from-[#1e1e2e] to-[#181825] rounded-2xl p-6 w-[400px] border border-[#313244] shadow-2xl">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 bg-[#f38ba8]/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-[#f38ba8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-[#cdd6f4]">Delete Chat</h3>
+                        <p class="text-sm text-[#9399b2] mt-1">This will permanently delete <span class="text-[#cdd6f4] font-medium">{{ activeChannel?.name }}</span> and all its messages. This cannot be undone.</p>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button
+                        @click="showDeleteConfirm = false"
+                        class="px-4 py-2 bg-[#45475a] hover:bg-[#585b70] text-[#cdd6f4] rounded-lg transition-colors duration-200"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        @click="handleDeleteChat"
+                        class="px-4 py-2 bg-[#f38ba8] hover:bg-[#f38ba8]/80 text-[#1e1e2e] font-medium rounded-lg transition-colors duration-200"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Rename Group Modal -->
         <div
             v-if="showRenameModal"
@@ -219,6 +295,9 @@ export default {
             newGroupName: "",
             renameError: "",
             isRenaming: false,
+            showLeaveConfirm: false,
+            showDeleteConfirm: false,
+            actionError: "",
         };
     },
     computed: {
@@ -311,11 +390,10 @@ export default {
             }
         },
         confirmLeaveGroup() {
-            if (confirm("Are you sure you want to leave this group?")) {
-                this.handleLeaveGroup();
-            }
+            this.showLeaveConfirm = true;
         },
         async handleLeaveGroup() {
+            this.showLeaveConfirm = false;
             try {
                 const currentChatId = this.activeChannel.id;
 
@@ -325,30 +403,27 @@ export default {
 
                 this.$emit('close');
 
-                // Get updated channels list after leaving
+                // Get updated channels list (left channel is already removed by mutation)
                 const channels = this.$store.getters.getChannels;
                 const singleChannels = this.$store.getters.getSingChannels;
                 const allChannels = [...channels, ...singleChannels];
-
-                // Find a different chat to redirect to (not the one we just left)
-                const nextChat = allChannels.find(c => c.id !== currentChatId);
+                const nextChat = allChannels[0];
 
                 if (nextChat) {
+                    this.$store.dispatch("setActiveChannel", nextChat.id);
                     this.$router.push(`/chats/${nextChat.id}`);
                 } else {
-                    // No chats available, go to home
                     this.$router.push('/');
                 }
             } catch (error) {
-                alert(error.response?.data?.error || "Failed to leave group");
+                this.actionError = error.response?.data?.error || "Failed to leave group";
             }
         },
         confirmDeleteChat() {
-            if (confirm("Are you sure you want to delete this chat? This action cannot be undone.")) {
-                this.handleDeleteChat();
-            }
+            this.showDeleteConfirm = true;
         },
         async handleDeleteChat() {
+            this.showDeleteConfirm = false;
             try {
                 const currentChatId = this.activeChannel.id;
 
@@ -358,22 +433,20 @@ export default {
 
                 this.$emit('close');
 
-                // Get updated channels list after deleting
+                // Get updated channels list (deleted channel is already removed by mutation)
                 const channels = this.$store.getters.getChannels;
                 const singleChannels = this.$store.getters.getSingChannels;
                 const allChannels = [...channels, ...singleChannels];
-
-                // Find a different chat to redirect to (not the one we just deleted)
-                const nextChat = allChannels.find(c => c.id !== currentChatId);
+                const nextChat = allChannels[0];
 
                 if (nextChat) {
+                    this.$store.dispatch("setActiveChannel", nextChat.id);
                     this.$router.push(`/chats/${nextChat.id}`);
                 } else {
-                    // No chats available, go to home
                     this.$router.push('/');
                 }
             } catch (error) {
-                alert(error.response?.data?.error || "Failed to delete chat");
+                this.actionError = error.response?.data?.error || "Failed to delete chat";
             }
         },
     },

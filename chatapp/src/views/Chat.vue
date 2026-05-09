@@ -2,16 +2,25 @@
     <div class="flex h-screen bg-[#1e1e2e]">
         <Sidebar />
         <div class="flex flex-col flex-1 relative">
-            <!-- Header with member list toggle -->
+            <!-- Header -->
             <div
-                v-if="activeChannel && activeChannel.type !== 'single'"
+                v-if="activeChannel"
                 class="flex items-center justify-between px-5 py-3 bg-[#313244] border-b border-[#45475a]"
             >
-                <div class="flex items-center">
-                    <h1 class="text-lg font-bold text-[#cdd6f4]">
-                        # {{ activeChannel.name }}
-                    </h1>
+                <!-- Channel title -->
+                <div class="flex items-center gap-2">
+                    <template v-if="activeChannel.type === 'single'">
+                        <div class="w-8 h-8 rounded-full bg-[#89b4fa] flex items-center justify-center text-[#1e1e2e] text-sm font-bold">
+                            {{ dmRecipientInitials }}
+                        </div>
+                        <h1 class="text-lg font-bold text-[#cdd6f4]">{{ dmRecipientName }}</h1>
+                    </template>
+                    <template v-else>
+                        <h1 class="text-lg font-bold text-[#cdd6f4]"># {{ activeChannel.name }}</h1>
+                    </template>
                 </div>
+
+                <!-- Action buttons -->
                 <div class="flex items-center gap-2">
                     <button
                         @click="toggleAgentList"
@@ -23,6 +32,7 @@
                         <span class="text-sm">Agents</span>
                     </button>
                     <button
+                        v-if="activeChannel.type !== 'single'"
                         @click="toggleMemberList"
                         class="flex items-center gap-2 px-3 py-2 text-[#9399b2] hover:text-[#cdd6f4] hover:bg-[#45475a] rounded-lg transition-colors duration-200"
                     >
@@ -65,6 +75,18 @@ export default {
     computed: {
         activeChannel() {
             return this.$store.state.activeChannel;
+        },
+        dmRecipientName() {
+            if (!this.activeChannel || this.activeChannel.type !== 'single') return '';
+            const myId = this.$store.state.user?.id;
+            const recipientId = this.activeChannel.members?.find((id) => id !== myId);
+            const recipient = this.$store.state.users[recipientId];
+            return recipient?.fullname || recipient?.email || 'Unknown';
+        },
+        dmRecipientInitials() {
+            const name = this.dmRecipientName;
+            if (!name) return '?';
+            return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
         },
     },
     methods: {

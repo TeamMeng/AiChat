@@ -56,14 +56,25 @@ impl AppState {
             "#,
         )
         .bind(chat_id as i64)
-        .bind(input.name)
+        .bind(&input.name)
         .bind(input.r#type)
         .bind(input.adapter)
         .bind(input.model)
         .bind(input.prompt)
         .bind(input.args)
         .fetch_one(&self.pool)
-        .await?;
+        .await
+        .map_err(|e| {
+            if let sqlx::Error::Database(db_err) = &e
+                && db_err.constraint() == Some("chat_agents_chat_id_name_key")
+            {
+                return AppError::CreateAgentError(format!(
+                    "Agent '{}' already exists in this chat",
+                    input.name
+                ));
+            }
+            AppError::SqlxError(e)
+        })?;
 
         Ok(agent)
     }
@@ -173,14 +184,14 @@ impl AppState {
             )));
         }
 
-        let _: (i64,) = sqlx::query_as(
+        sqlx::query(
             r#"
             DELETE FROM chat_agents WHERE chat_id = $1 AND id = $2
             "#,
         )
         .bind(chat_id as i64)
         .bind(agent_id as i64)
-        .fetch_one(&self.pool)
+        .execute(&self.pool)
         .await?;
 
         Ok(())

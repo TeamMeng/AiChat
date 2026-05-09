@@ -39,6 +39,7 @@ pub(crate) async fn sse_handler(
             AppEvent::AddToChat(_) => "AddToChat",
             AppEvent::RemoveFromChat(_) => "RemoveFromChat",
             AppEvent::NewMessage(_) => "NewMessage",
+            AppEvent::MessageDeleted(_) => "MessageDeleted",
             AppEvent::WorkspaceDeleted(_) => "WorkspaceDeleted",
             AppEvent::WorkspaceUpdated(_) => "WorkspaceUpdated",
             AppEvent::UserJoinedWorkspace(_) => "UserJoinedWorkspace",

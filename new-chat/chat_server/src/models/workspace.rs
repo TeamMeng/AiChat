@@ -238,6 +238,19 @@ impl AppState {
         .execute(&self.pool)
         .await?;
 
+        // Add user to all public channels in the new workspace
+        sqlx::query(
+            "
+            UPDATE chats
+            SET members = array(SELECT DISTINCT unnest(members || ARRAY[$1::bigint]))
+            WHERE ws_id = $2 AND type = 'public_channel'
+            ",
+        )
+        .bind(user_id as i64)
+        .bind(invitation.workspace_id)
+        .execute(&self.pool)
+        .await?;
+
         // Get the workspace
         let workspace = self
             .find_workspace_by_id(invitation.workspace_id as u64)

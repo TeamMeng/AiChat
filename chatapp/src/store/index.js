@@ -112,6 +112,15 @@ export default createStore({
       state.channels.push(channel);
       state.messages[channel.id] = []; // Initialize message list for the new channel
     },
+    updateChannel(state, channel) {
+      const idx = state.channels.findIndex((c) => c.id === channel.id);
+      if (idx !== -1) {
+        state.channels[idx] = channel;
+        if (state.activeChannel?.id === channel.id) {
+          state.activeChannel = channel;
+        }
+      }
+    },
     addMessage(state, { channelId, message }) {
       if (state.messages[channelId]) {
         // Format the message date before adding it to the state
@@ -139,6 +148,19 @@ export default createStore({
       if (state.agents[channelId]) {
         state.agents[channelId] = state.agents[channelId].filter(
           (a) => a.id !== agentId
+        );
+      }
+    },
+    removeChannel(state, channelId) {
+      state.channels = state.channels.filter((c) => c.id !== channelId);
+      if (state.activeChannel?.id === channelId) {
+        state.activeChannel = null;
+      }
+    },
+    removeMessage(state, { channelId, messageId }) {
+      if (state.messages[channelId]) {
+        state.messages[channelId] = state.messages[channelId].filter(
+          (m) => m.id !== messageId
         );
       }
     },
@@ -437,8 +459,10 @@ export default createStore({
 
         const newChat = response.data;
 
-        // Add the new chat to channels
-        commit("addChannel", newChat);
+        // Only add if not already present (SSE NewChat event may have arrived first)
+        if (!state.channels.find((c) => c.id === newChat.id)) {
+          commit("addChannel", newChat);
+        }
 
         // Send analytics event
         await this.dispatch("chatCreated", { workspaceId: state.workspace.id });
@@ -463,12 +487,8 @@ export default createStore({
 
         const updatedChat = response.data;
 
-        // Update the channel in state
-        const channelIndex = state.channels.findIndex(c => c.id === chatId);
-        if (channelIndex !== -1) {
-          state.channels[channelIndex] = updatedChat;
-          localStorage.setItem("channels", JSON.stringify(state.channels));
-        }
+        commit("updateChannel", updatedChat);
+        localStorage.setItem("channels", JSON.stringify(state.channels));
 
         return updatedChat;
       } catch (error) {
@@ -489,17 +509,8 @@ export default createStore({
         );
 
         const updatedChat = response.data;
-
-        // Update the channel in state
-        const channelIndex = state.channels.findIndex(c => c.id === chatId);
-        if (channelIndex !== -1) {
-          state.channels[channelIndex] = updatedChat;
-          if (state.activeChannel?.id === chatId) {
-            state.activeChannel = updatedChat;
-          }
-          localStorage.setItem("channels", JSON.stringify(state.channels));
-        }
-
+        commit("updateChannel", updatedChat);
+        localStorage.setItem("channels", JSON.stringify(state.channels));
         return updatedChat;
       } catch (error) {
         console.error("Failed to rename chat:", error);
@@ -518,8 +529,7 @@ export default createStore({
           },
         );
 
-        // Remove the channel from state
-        state.channels = state.channels.filter(c => c.id !== chatId);
+        commit("removeChannel", chatId);
         localStorage.setItem("channels", JSON.stringify(state.channels));
 
         // Send analytics event
@@ -541,8 +551,7 @@ export default createStore({
           },
         );
 
-        // Remove the channel from state
-        state.channels = state.channels.filter(c => c.id !== chatId);
+        commit("removeChannel", chatId);
         localStorage.setItem("channels", JSON.stringify(state.channels));
       } catch (error) {
         console.error("Failed to delete chat:", error);
@@ -561,13 +570,8 @@ export default createStore({
           },
         );
 
-        // Remove the message from state
-        if (state.messages[chatId]) {
-          state.messages[chatId] = state.messages[chatId].filter(
-            m => m.id !== messageId
-          );
-          localStorage.setItem("messages", JSON.stringify(state.messages));
-        }
+        commit("removeMessage", { channelId: chatId, messageId });
+        localStorage.setItem("messages", JSON.stringify(state.messages));
       } catch (error) {
         console.error("Failed to delete message:", error);
         throw error;
@@ -629,6 +633,34 @@ export default createStore({
       } catch (error) {
         console.error("Failed to delete agent:", error);
         throw error;
+      }
+    },
+    async fetchChats({ state, commit }) {
+      try {
+        const response = await network(this, "get", "/chats", null, {
+          Authorization: `Bearer ${state.token}`,
+        });
+        const channels = response.data;
+        commit("setChannels", channels);
+        localStorage.setItem("channels", JSON.stringify(channels));
+        return channels;
+      } catch (error) {
+        console.error("Failed to fetch chats:", error);
+      }
+    },
+    async fetchUsers({ state, commit }) {
+      try {
+        const response = await network(this, "get", "/users", null, {
+          Authorization: `Bearer ${state.token}`,
+        });
+        const users = response.data;
+        const usersMap = {};
+        users.forEach((u) => { usersMap[u.id] = u; });
+        commit("setUsers", usersMap);
+        localStorage.setItem("users", JSON.stringify(usersMap));
+        return usersMap;
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
       }
     },
   },

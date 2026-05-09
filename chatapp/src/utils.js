@@ -33,30 +33,52 @@ const initSSE = (store) => {
 
   sse.addEventListener("NewMessage", (e) => {
     let data = JSON.parse(e.data);
-    console.log("message:", e.data);
     delete data.event;
     store.commit("addMessage", { channelId: data.chatId, message: data });
   });
 
-  sse.addEventListener("UserJoinedWorkspace", (e) => {
+  sse.addEventListener("NewChat", (e) => {
     let data = JSON.parse(e.data);
-    console.log("UserJoinedWorkspace:", data);
-
-    // Show a notification to the user
-    const message = `${data.user_name} (${data.user_email}) joined the workspace`;
-
-    // You can add a toast notification here if you have a notification system
-    console.log("Notification:", message);
-
-    // Optionally refresh the user list if needed
-    // store.dispatch("refreshUsers");
+    delete data.event;
+    const exists = store.state.channels.find((c) => c.id === data.id);
+    if (!exists) {
+      store.commit("addChannel", data);
+      localStorage.setItem("channels", JSON.stringify(store.state.channels));
+    }
   });
 
-  sse.onmessage = (event) => {
-    console.log("got event:", event);
-    // const data = JSON.parse(event.data);
-    // commit('addMessage', data);
-  };
+  sse.addEventListener("AddToChat", (e) => {
+    let data = JSON.parse(e.data);
+    delete data.event;
+    const exists = store.state.channels.find((c) => c.id === data.id);
+    if (exists) {
+      store.commit("updateChannel", data);
+    } else {
+      store.commit("addChannel", data);
+    }
+    localStorage.setItem("channels", JSON.stringify(store.state.channels));
+  });
+
+  sse.addEventListener("RemoveFromChat", (e) => {
+    let data = JSON.parse(e.data);
+    store.commit("removeChannel", data.id);
+    localStorage.setItem("channels", JSON.stringify(store.state.channels));
+  });
+
+  sse.addEventListener("MessageDeleted", (e) => {
+    let data = JSON.parse(e.data);
+    store.commit("removeMessage", { channelId: data.chatId, messageId: data.messageId });
+    localStorage.setItem("messages", JSON.stringify(store.state.messages));
+  });
+
+  sse.addEventListener("UserJoinedWorkspace", (e) => {
+    let data = JSON.parse(e.data);
+    console.log("UserJoinedWorkspace:", data.user_name);
+    // Refresh user list so the new member appears
+    store.dispatch("fetchUsers");
+    // Refresh channels in case the new member was added to shared channels
+    store.dispatch("fetchChats");
+  });
 
   sse.onerror = (error) => {
     console.error("EventSource failed:", error);

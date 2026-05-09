@@ -175,13 +175,13 @@ impl AppState {
         }
 
         // delete the message
-        let _: (i64,) = sqlx::query_as(
+        sqlx::query(
             r#"
             DELETE FROM messages WHERE id = $1
             "#,
         )
         .bind(message_id as i64)
-        .fetch_one(&self.pool)
+        .execute(&self.pool)
         .await?;
 
         Ok(())

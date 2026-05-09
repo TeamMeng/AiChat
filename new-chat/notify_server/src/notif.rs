@@ -30,12 +30,20 @@ pub struct UserJoinedWorkspace {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageDeleted {
+    pub message_id: i64,
+    pub chat_id: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "camelCase")]
 pub enum AppEvent {
     NewChat(Chat),
     AddToChat(Chat),
     RemoveFromChat(Chat),
     NewMessage(Message),
+    MessageDeleted(MessageDeleted),
     WorkspaceDeleted(WorkspaceDeleted),
     WorkspaceUpdated(WorkspaceUpdated),
     UserJoinedWorkspace(UserJoinedWorkspace),
@@ -57,6 +65,13 @@ struct ChatUpdated {
 #[derive(Debug, Serialize, Deserialize)]
 struct ChatMessageCreated {
     message: Message,
+    members: Vec<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct MessageDeletedPayload {
+    message_id: i64,
+    chat_id: i64,
     members: Vec<i64>,
 }
 
@@ -102,6 +117,7 @@ pub async fn setup_pg_listener(state: AppState) -> Result<()> {
     let mut listener = PgListener::connect(&state.config.server.db_url).await?;
     listener.listen("chat_updated").await?;
     listener.listen("chat_message_created").await?;
+    listener.listen("message_deleted").await?;
     listener.listen("workspace_deleted").await?;
     listener.listen("workspace_updated").await?;
     listener.listen("user_joined_workspace").await?;
@@ -225,6 +241,18 @@ impl Notification {
                     event: Arc::new(AppEvent::NewMessage(payload.message)),
                 })
             }
+            "message_deleted" => {
+                let payload: MessageDeletedPayload = serde_json::from_str(payload)?;
+                let user_ids = payload.members.iter().map(|v| *v as u64).collect();
+                let event = AppEvent::MessageDeleted(MessageDeleted {
+                    message_id: payload.message_id,
+                    chat_id: payload.chat_id,
+                });
+                Ok(Self {
+                    user_ids,
+                    event: Arc::new(event),
+                })
+            }
             "workspace_deleted" => {
                 let payload: WorkspaceDeletedPayload = serde_json::from_str(payload)?;
                 info!("WorkspaceDeleted: {:?}", payload);
@@ -286,7 +314,8 @@ fn get_affected_chat_user_ids(old: Option<&Chat>, new: Option<&Chat>) -> HashSet
                 .map(|v| *v as u64)
                 .collect::<HashSet<_>>();
             if old_user_ids == new_user_ids {
-                HashSet::new()
+                // Members unchanged (e.g. rename) — still notify all current members
+                new_user_ids
             } else {
                 old_user_ids.union(&new_user_ids).copied().collect()
             }
