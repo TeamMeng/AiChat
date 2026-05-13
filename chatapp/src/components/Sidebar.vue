@@ -490,6 +490,7 @@ export default {
             this.selectedUsers = [];
             this.createChatError = "";
             this.createChatSuccess = "";
+            this.$store.dispatch("fetchUsers");
         },
         closeCreateChatModal() {
             this.showCreateChatModal = false;
