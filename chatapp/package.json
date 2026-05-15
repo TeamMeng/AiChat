@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "PATH=/opt/homebrew/bin:/usr/local/bin:$PATH vite",
+    "build": "PATH=/opt/homebrew/bin:/usr/local/bin:$PATH vite build",
+    "preview": "PATH=/opt/homebrew/bin:/usr/local/bin:$PATH vite preview",
     "tauri": "tauri"
   },
   "dependencies": {

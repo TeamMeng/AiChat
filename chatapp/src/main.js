@@ -2,17 +2,24 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 import store from './store';
+import { initializeConfig } from './utils';
 
 // import './assets/styles.css'; // Import any global styles
 import './tailwind.css';
 
-const app = createApp(App);
+const bootstrap = async () => {
+  await initializeConfig();
 
-// Load user state from localStorage when the app starts
-store.dispatch('loadUserState');
-store.dispatch('appStart');
+  const app = createApp(App);
 
-app.use(store);
-app.use(router);
+  // Load user state from localStorage when the app starts
+  store.dispatch('loadUserState');
+  store.dispatch('appStart');
 
-app.mount('#app');
+  app.use(store);
+  app.use(router);
+
+  app.mount('#app');
+};
+
+bootstrap();

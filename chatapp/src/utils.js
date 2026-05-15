@@ -4,13 +4,16 @@ const URL_BASE = "http://localhost:6688/api";
 const SSE_URL = "http://localhost:6687/events";
 
 let config = null;
-try {
-  if (invoke) {
+
+const configReady = (async () => {
+  try {
     config = await invoke("get_config");
+  } catch (error) {
+    console.warn("failed to get config: fallback");
   }
-} catch (error) {
-  console.warn("failed to get config: fallback");
-}
+})();
+
+const initializeConfig = () => configReady;
 
 const getUrlBase = () => {
   if (config && config.server.chat) {
@@ -88,7 +91,7 @@ const initSSE = (store) => {
   return sse;
 };
 
-export { getUrlBase, initSSE };
+export { getUrlBase, initSSE, initializeConfig };
 
 export function formatMessageDate(timestamp) {
   const date = new Date(timestamp);
