@@ -19,7 +19,7 @@ use axum::{
     Router,
     http::Method,
     middleware::from_fn_with_state,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use chat_core::{
     DecodingKey, EncodingKey, User,
@@ -124,7 +124,7 @@ pub async fn get_router(state: AppState) -> Result<Router, AppError> {
         )
         .route(
             "/workspaces/invitations/{id}",
-            axum::routing::delete(deactivate_invitation_handler),
+            delete(deactivate_invitation_handler),
         )
         .route("/workspaces/join", post(join_workspace_handler))
         .layer(from_fn_with_state(state.clone(), verify_token::<AppState>))

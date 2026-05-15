@@ -47,10 +47,9 @@ Content-Type: application/json
 
 {
     "email": "tchen@acme.org",
-    "password": "123456"
+    "password": "mzl14753"
 }
 ### Set token variable
-@token = {{signin.response.body.accessToken}}
 @refreshToken = {{signin.response.body.refreshToken}}
 
 ### signin user (valid)
@@ -63,7 +62,7 @@ Content-Type: application/json
     "password": "123456"
 }
 ### Set token variable
-@token1 = {{signin1.response.body.accessToken}}
+@accessToken1 = {{signin1.response.body.accessToken}}
 @refreshToken1 = {{signin1.response.body.refreshToken}}
 
 ### refresh access token
@@ -77,7 +76,7 @@ Content-Type: application/json
 ### create chat
 POST http://localhost:6688/api/chats
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 {
     "name": "project X",
@@ -88,7 +87,7 @@ Authorization: Bearer {{token}}
 ### create direct chat
 POST http://localhost:6688/api/chats
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 {
     "members": [1, 2],
@@ -98,7 +97,7 @@ Authorization: Bearer {{token}}
 ### create chats without me
 POST http://localhost:6688/api/chats
 Content-Type: application/json
-Authorization: Bearer {{token1}}
+Authorization: Bearer {{accessToken1}}
 
 {
     "name": "project Y",
@@ -109,7 +108,7 @@ Authorization: Bearer {{token1}}
 ### create direct chat without me
 POST http://localhost:6688/api/chats
 Content-Type: application/json
-Authorization: Bearer {{token1}}
+Authorization: Bearer {{accessToken1}}
 
 {
     "members": [2, 3],
@@ -119,16 +118,16 @@ Authorization: Bearer {{token1}}
 
 ### get chat list
 GET http://localhost:6688/api/chats
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 ### get user list
 GET http://localhost:6688/api/users
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 
 ### upload files
 POST http://localhost:6688/api/upload
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 Content-Type: multipart/form-data; boundary=MyBoundary
 
 --MyBoundary
@@ -146,33 +145,30 @@ Hello, World!
 
 ### get files
 GET http://localhost:6688/api/files/1/d79/340/e614f33a0d250d2e6bc2b620f618ae9cb5.jpg
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 ### get files with token
-GET http://localhost:6688/api/files/1/d79/340/e614f33a0d250d2e6bc2b620f618ae9cb5.jpg?token={{token}}
+GET http://localhost:6688/api/files/1/d79/340/e614f33a0d250d2e6bc2b620f618ae9cb5.jpg?token={{accessToken1}}
 
 ### send a message
 POST http://localhost:6688/api/chats/1
 Content-Type: application/json
-Authorization: Bearer {{token}}
-
-{
-    "content": "Hello, World!",
+Authorization: Bearer {{accessToken1}}
     "files": []
 }
 
 ### get messages
 GET http://localhost:6688/api/chats/1/messages?limit=6&last_id=5
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 
 ### list chat agents
 GET http://localhost:6688/api/chats/1/agents
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 ### create chat agent
 POST http://localhost:6688/api/chats/1/agents
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 Content-Type: application/json
 
 {
@@ -186,7 +182,7 @@ Content-Type: application/json
 ### update chat agent
 
 PATCH http://localhost:6688/api/chats/1/agents
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 Content-Type: application/json
 
 {
@@ -198,7 +194,7 @@ Content-Type: application/json
 ### send a chinese message
 POST http://localhost:6688/api/chats/1
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 {
     "content": "你好，今天工作辛苦了",
@@ -208,7 +204,7 @@ Authorization: Bearer {{token}}
 ### send a english message
 POST http://localhost:6688/api/chats/1
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 {
     "content": "Well done! You made great progress today.",
@@ -229,7 +225,7 @@ Content-Type: application/json
 ### create a chat between tyr and bot
 POST http://localhost:6688/api/chats
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 
 {
     "members": [1, 4],
@@ -238,7 +234,7 @@ Authorization: Bearer {{token}}
 
 ### create chat agent
 POST http://localhost:6688/api/chats/5/agents
-Authorization: Bearer {{token}}
+Authorization: Bearer {{accessToken1}}
 Content-Type: application/json
 
 {
@@ -252,7 +248,7 @@ Content-Type: application/json
 ### send an event
 curl -X POST http://localhost:6690/api/event \
   -H "Content-Type: application/protobuf" \
-  -H "Authorization: Bearer {{token}}" \
+  -H "Authorization: Bearer {{accessToken1}}" \
   -H "X-Country: China" \
   -H "X-Region: Shanghai" \
   -H "X-City: Shanghai" \
